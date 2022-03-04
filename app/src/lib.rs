@@ -3,8 +3,11 @@ use general_storage_static::{format, StaticStorage};
 use rainforest_game::Config as GameConfig;
 use serde::{Deserialize, Serialize};
 
+mod colour;
 mod controls;
+mod game;
 mod game_loop;
+mod tile_3x3;
 
 use controls::Controls;
 use game_loop::GameInstanceStorable;

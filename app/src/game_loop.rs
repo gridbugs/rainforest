@@ -1,4 +1,4 @@
-use crate::{controls::Controls, AppStorage, Config, InitialRngSeed};
+use crate::{colour, controls::Controls, AppStorage, Config, InitialRngSeed};
 use chargrid::{control_flow::boxed::*, prelude::*};
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
@@ -68,6 +68,10 @@ impl GameInstance {
         let Self { game } = self;
         let running_game = game.into_running_game(running);
         GameInstanceStorable { running_game }
+    }
+
+    pub fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        crate::game::render_game_with_visibility(&self.game, ctx, fb);
     }
 }
 
@@ -142,8 +146,60 @@ impl GameLoopData {
             state,
         )
     }
+
+    fn render(&self, cursor_colour: Rgba32, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.instance.as_ref().unwrap().render(ctx, fb);
+    }
+
+    fn update(&mut self, event: Event, running: witness::Running) -> GameLoopState {
+        GameLoopState::Playing(running.into_witness())
+    }
+}
+
+struct GameInstanceComponent(Option<witness::Running>);
+
+impl GameInstanceComponent {
+    fn new(running: witness::Running) -> Self {
+        Self(Some(running))
+    }
+}
+
+impl Component for GameInstanceComponent {
+    type Output = GameLoopState;
+    type State = GameLoopData;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        state.render(colour::CURSOR, ctx, fb);
+    }
+
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+        let running = self.0.take().unwrap();
+        if event.is_escape_or_start() {
+            GameLoopState::Paused(running)
+        } else {
+            state.update(event, running)
+        }
+    }
+
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+
+fn game_instance_component(running: witness::Running) -> CF<GameLoopState> {
+    boxed_cf(GameInstanceComponent::new(running))
+        .some()
+        .no_peek()
 }
 
 pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
-    styled_string("Hello, World!".to_string(), Style::plain_text()).ignore_output()
+    use GameLoopState::*;
+    loop_(initial_state, |state| match state {
+        Playing(witness) => match witness {
+            Witness::Running(running) => game_instance_component(running).continue_(),
+        },
+        Paused(running) => todo!(),
+        MainMenu => todo!(),
+    })
+    .bound_size(Size::new_u16(80, 60))
 }
