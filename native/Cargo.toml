@@ -1,0 +1,10 @@
+[package]
+name = "rainforest_native"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+general_storage_static = { version = "0.2", features = ["file"] }
+log = "0.4"
+rainforest_app = { path = "../app", features = ["native"] }
+meap = "0.5"

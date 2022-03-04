@@ -1,0 +1,24 @@
+[package]
+name = "rainforest_app"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+print_stdout = []
+print_log = []
+native = ["general_storage_static/file"]
+web = ["general_storage_static/web", "getrandom/js"]
+
+[dependencies]
+chargrid = { version = "0.6", features = ["serialize", "gamepad"] }
+direction = { version = "0.18", features = ["serialize", "rand"] }
+general_storage_static = { version = "0.2", features = ["bincode", "json"] }
+getrandom = "0.2"
+grid_2d = { version = "0.15", features = ["serialize"] }
+log = "0.4"
+maplit = "1.0"
+rand = "0.8"
+rand_isaac = { version = "0.3", features = ["serde1"] }
+rainforest_game = { path = "../game" }
+rgb_int = "0.1"
+serde = { version = "1.0", features = ["serde_derive"] }

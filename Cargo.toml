@@ -1,0 +1,16 @@
+[workspace]
+
+resolver = "2" # this is required for the wgpu frontend
+
+members = [
+    "game",
+    "app",
+    "native",
+    "ansi-terminal",
+    "web",
+    "ggez",
+    "wgpu",
+]
+
+[profile.release]
+lto = true
