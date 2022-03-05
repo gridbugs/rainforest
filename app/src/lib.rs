@@ -1,12 +1,13 @@
 use chargrid::control_flow::boxed::*;
 use general_storage_static::{format, StaticStorage};
 use rainforest_game::Config as GameConfig;
-use serde::{Deserialize, Serialize};
 
 mod colour;
 mod controls;
+mod examine;
 mod game;
 mod game_loop;
+mod text;
 mod tile_3x3;
 
 use controls::Controls;
@@ -17,22 +18,14 @@ pub enum InitialRngSeed {
     Random,
 }
 
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
-struct Config {
-    won: bool,
-    first_run: bool,
-}
-
 pub struct AppStorage {
     pub handle: StaticStorage,
     pub save_game_key: String,
-    pub config_key: String,
     pub controls_key: String,
 }
 
 impl AppStorage {
     const SAVE_GAME_STORAGE_FORMAT: format::Bincode = format::Bincode;
-    const CONFIG_STORAGE_FORMAT: format::JsonPretty = format::JsonPretty;
     const CONTROLS_STORAGE_FORMAT: format::JsonPretty = format::JsonPretty;
 
     fn save_game(&mut self, instance: &GameInstanceStorable) {
@@ -88,45 +81,6 @@ impl AppStorage {
                     RemoveError::NoSuchKey => (),
                 }
             }
-        }
-    }
-
-    fn save_config(&mut self, config: &Config) {
-        let result = self
-            .handle
-            .store(&self.config_key, &config, Self::CONFIG_STORAGE_FORMAT);
-        if let Err(e) = result {
-            use general_storage_static::{StoreError, StoreRawError};
-            match e {
-                StoreError::FormatError(e) => log::error!("Failed to format config: {}", e),
-                StoreError::Raw(e) => match e {
-                    StoreRawError::IoError(e) => {
-                        log::error!("Error while writing config: {}", e)
-                    }
-                },
-            }
-        }
-    }
-
-    fn load_config(&self) -> Option<Config> {
-        let result = self
-            .handle
-            .load::<_, Config, _>(&self.config_key, Self::CONFIG_STORAGE_FORMAT);
-        match result {
-            Err(e) => {
-                use general_storage_static::{LoadError, LoadRawError};
-                match e {
-                    LoadError::FormatError(e) => log::error!("Failed to parse config file: {}", e),
-                    LoadError::Raw(e) => match e {
-                        LoadRawError::IoError(e) => {
-                            log::error!("Error while reading config: {}", e)
-                        }
-                        LoadRawError::NoSuchKey => (),
-                    },
-                }
-                None
-            }
-            Ok(instance) => Some(instance),
         }
     }
 

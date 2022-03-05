@@ -3,7 +3,7 @@ use chargrid::{
     core::rgb_int::{rgb24, Rgb24},
     prelude::*,
 };
-use rainforest_game::{CellVisibility, Game, Layer};
+use rainforest_game::{CellVisibility, Game};
 
 #[derive(Clone, Copy)]
 struct Remembered;

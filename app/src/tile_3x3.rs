@@ -11,7 +11,7 @@ pub fn render_3x3_from_visibility(
     fb: &mut FrameBuffer,
 ) {
     let ctx = ctx.add_offset(coord * 3);
-    let mut render_tile = |entity, tile, ctx| match tile {
+    let mut render_tile = |_entity, tile, ctx| match tile {
         Tile::Wall => {
             let below = coord + Coord::new(0, 1);
             if let Some(render_cell) = game.visibility_grid().get_cell(below) {
