@@ -72,4 +72,19 @@ impl World {
     pub fn entity_coord(&self, entity: Entity) -> Option<Coord> {
         self.spatial_table.coord_of(entity)
     }
+
+    pub fn open_door(&mut self, door: Entity) {
+        self.components.solid.remove(door);
+        self.components.opacity.remove(door);
+        let axis = match self
+            .components
+            .tile
+            .get(door)
+            .expect("door lacks tile component")
+        {
+            Tile::DoorClosed(axis) | Tile::DoorOpen(axis) => *axis,
+            _ => panic!("unexpected tile on door"),
+        };
+        self.components.tile.insert(door, Tile::DoorOpen(axis));
+    }
 }

@@ -5,6 +5,7 @@ use rainforest_game::Config as GameConfig;
 mod colour;
 mod controls;
 mod examine;
+mod fields;
 mod game;
 mod game_loop;
 mod text;

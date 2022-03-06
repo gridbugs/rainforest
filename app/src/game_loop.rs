@@ -1,7 +1,9 @@
 use crate::{
     colour,
     controls::{AppInput, Controls},
-    examine, text, AppStorage, InitialRngSeed,
+    examine,
+    fields::{GroundField, LogField},
+    text, AppStorage, InitialRngSeed,
 };
 use chargrid::{border::BorderStyle, control_flow::boxed::*, menu, prelude::*, text::StyledString};
 use rainforest_game::{
@@ -12,7 +14,8 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 
-const GAME_VIEW_SIZE: Size = Size::new_u16(30, 20);
+const GAME_VIEW_SIZE: Size = Size::new_u16(25, 19);
+const GAME_VIEW_OFFSET: Coord = Coord::new(0, 2);
 
 /// An interactive, renderable process yielding a value of type `T`
 pub type CF<T> = BoxedCF<Option<T>, GameLoopData>;
@@ -58,34 +61,75 @@ fn action_error_message(action_error: ActionError) -> StyledString {
 #[derive(Serialize, Deserialize)]
 pub struct GameInstanceStorable {
     running_game: RunningGame,
+    ground_field: GroundField,
+    log_field: LogField,
 }
 
 impl GameInstanceStorable {
     fn into_game_instance(self) -> (GameInstance, witness::Running) {
-        let Self { running_game } = self;
+        let Self {
+            running_game,
+            ground_field,
+            log_field,
+        } = self;
         let (game, running) = running_game.into_game();
-        (GameInstance { game }, running)
+        (
+            GameInstance {
+                game,
+                ground_field,
+                log_field,
+            },
+            running,
+        )
     }
 }
 
 struct GameInstance {
     game: Game,
+    ground_field: GroundField,
+    log_field: LogField,
 }
 
 impl GameInstance {
     pub fn new<R: Rng>(config: &GameConfig, rng: &mut R) -> (Self, witness::Running) {
         let (game, running) = witness::new_game(config, rng);
-        (GameInstance { game }, running)
+        let ground_field = GroundField::new(game.world_size(), rng);
+        let log_field = LogField::new(game.world_size(), rng);
+        (
+            GameInstance {
+                game,
+                ground_field,
+                log_field,
+            },
+            running,
+        )
     }
 
     pub fn into_storable(self, running: witness::Running) -> GameInstanceStorable {
-        let Self { game } = self;
+        let Self {
+            game,
+            ground_field,
+            log_field,
+        } = self;
         let running_game = game.into_running_game(running);
-        GameInstanceStorable { running_game }
+        GameInstanceStorable {
+            running_game,
+            ground_field,
+            log_field,
+        }
     }
 
     pub fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-        crate::game::render_game_with_visibility(&self.game, ctx, fb);
+        let offset = self.game.player_coord() - (GAME_VIEW_SIZE / 2);
+        crate::game::render_game_with_visibility(
+            &self.game,
+            offset,
+            GAME_VIEW_SIZE,
+            &self.ground_field,
+            &self.log_field,
+            ctx.add_offset(GAME_VIEW_OFFSET),
+            fb,
+        );
     }
 }
 
@@ -174,7 +218,7 @@ impl GameLoopData {
         instance.render(ctx, fb);
         if let Some(cursor) = self.cursor {
             if cursor.is_valid(GAME_VIEW_SIZE + Size::new_u16(1, 1)) {
-                let screen_cursor = cursor * 3;
+                let screen_cursor = GAME_VIEW_OFFSET + (cursor * 3);
                 for offset in Size::new_u16(3, 3).coord_iter_row_major() {
                     fb.set_cell_relative_to_ctx(
                         ctx,
@@ -201,7 +245,7 @@ impl GameLoopData {
         match event {
             Event::Input(Input::Mouse(mouse_input)) => match mouse_input {
                 MouseInput::MouseMove { button: _, coord } => {
-                    self.cursor = Some(coord / 3);
+                    self.cursor = Some((coord - GAME_VIEW_OFFSET) / 3);
                 }
                 _ => (),
             },
@@ -210,9 +254,10 @@ impl GameLoopData {
     }
 
     fn update_examine_text(&mut self) {
-        self.examine_message = self
-            .cursor
-            .and_then(|coord| examine::examine(self.game(), coord));
+        self.examine_message = self.cursor.and_then(|coord| {
+            let world_coord = self.game().player_coord() - (GAME_VIEW_SIZE / 2) + coord;
+            examine::examine(self.game(), world_coord)
+        });
     }
 
     fn update(&mut self, event: Event, running: witness::Running) -> GameLoopState {
@@ -546,5 +591,4 @@ pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
             MainMenuOutput::Quit => LoopControl::Break(()),
         }),
     })
-    .bound_size(Size::new_u16(80, 60))
 }

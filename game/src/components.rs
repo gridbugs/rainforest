@@ -45,11 +45,11 @@ pub fn make_player() -> EntityData {
         tile: Some(Tile::Player),
         player: Some(Player {}),
         light: Some(Light {
-            colour: Rgb24::new_grey(200),
-            vision_distance: Circle::new_squared(70),
+            colour: Rgb24::new_grey(100),
+            vision_distance: Circle::new_squared(200),
             diminish: Rational {
                 numerator: 1,
-                denominator: 8,
+                denominator: 100,
             },
         }),
         ..Default::default()

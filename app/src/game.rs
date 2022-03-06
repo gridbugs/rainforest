@@ -1,4 +1,7 @@
-use crate::tile_3x3;
+use crate::{
+    fields::{GroundField, LogField},
+    tile_3x3,
+};
 use chargrid::{
     core::rgb_int::{rgb24, Rgb24},
     prelude::*,
@@ -33,30 +36,47 @@ impl Tint for LightBlend {
     }
 }
 
-pub fn render_game_with_visibility(game: &Game, ctx: Ctx, fb: &mut FrameBuffer) {
-    let vis_count = game.visibility_grid().count();
-    for (coord, visibility_cell) in game.visibility_grid().enumerate() {
-        match visibility_cell.visibility(vis_count) {
-            CellVisibility::CurrentlyVisibleWithLightColour(Some(light_colour)) => {
-                tile_3x3::render_3x3_from_visibility(
-                    coord,
-                    visibility_cell,
-                    game,
-                    ctx_tint!(ctx, LightBlend { light_colour }),
-                    fb,
-                );
+pub fn render_game_with_visibility(
+    game: &Game,
+    offset: Coord,
+    size: Size,
+    ground_field: &GroundField,
+    log_field: &LogField,
+    ctx: Ctx,
+    fb: &mut FrameBuffer,
+) {
+    let visibility_grid = game.visibility_grid();
+    let vis_count = visibility_grid.count();
+    for screen_coord in size.coord_iter_row_major() {
+        let world_coord = offset + screen_coord;
+        if let Some(visibility_cell) = visibility_grid.get_cell(world_coord) {
+            match visibility_cell.visibility(vis_count) {
+                CellVisibility::CurrentlyVisibleWithLightColour(Some(light_colour)) => {
+                    tile_3x3::render_3x3_from_visibility(
+                        screen_coord,
+                        world_coord,
+                        visibility_cell,
+                        game,
+                        ground_field,
+                        log_field,
+                        ctx_tint!(ctx, LightBlend { light_colour }),
+                        fb,
+                    );
+                }
+                CellVisibility::PreviouslyVisible => {
+                    tile_3x3::render_3x3_from_visibility_remembered(
+                        screen_coord,
+                        world_coord,
+                        visibility_cell,
+                        game,
+                        log_field,
+                        ctx_tint!(ctx, Remembered),
+                        fb,
+                    );
+                }
+                CellVisibility::NeverVisible
+                | CellVisibility::CurrentlyVisibleWithLightColour(None) => (),
             }
-            CellVisibility::PreviouslyVisible => {
-                tile_3x3::render_3x3_from_visibility_remembered(
-                    coord,
-                    visibility_cell,
-                    game,
-                    ctx_tint!(ctx, Remembered),
-                    fb,
-                );
-            }
-            CellVisibility::NeverVisible
-            | CellVisibility::CurrentlyVisibleWithLightColour(None) => (),
         }
     }
 }

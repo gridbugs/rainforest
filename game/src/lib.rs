@@ -1,5 +1,5 @@
 use direction::CardinalDirection;
-use grid_2d::Coord;
+use grid_2d::{Coord, Size};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use shadowcast::Context as ShadowcastContext;
@@ -68,6 +68,10 @@ impl Game {
         witness::RunningGame::new(self, running)
     }
 
+    pub fn world_size(&self) -> Size {
+        self.world.size()
+    }
+
     pub fn visibility_grid(&self) -> &VisibilityGrid {
         &self.visibility_grid
     }
@@ -107,10 +111,9 @@ impl Game {
         running.into_witness()
     }
 
-    pub fn player_walk(
+    pub fn player_walk_inner(
         &mut self,
         direction: CardinalDirection,
-        config: &Config,
         running: witness::Running,
     ) -> (Witness, Result<(), ActionError>) {
         let player_coord = self
@@ -122,7 +125,12 @@ impl Game {
         if let Some(layers) = self.world.spatial_table.layers_at(destination) {
             if let Some(feature) = layers.feature {
                 if self.world.components.solid.contains(feature) {
-                    return (running.into_witness(), ActionError::err_cant_walk_there());
+                    if self.world.components.door_state.contains(feature) {
+                        self.world.open_door(feature);
+                        return (running.into_witness(), Ok(()));
+                    } else {
+                        return (running.into_witness(), ActionError::err_cant_walk_there());
+                    }
                 }
             }
             let _ = self
@@ -132,7 +140,19 @@ impl Game {
         } else {
             return (running.into_witness(), ActionError::err_cant_walk_there());
         }
-        self.update_visibility(config);
         (running.into_witness(), Ok(()))
+    }
+
+    pub fn player_walk(
+        &mut self,
+        direction: CardinalDirection,
+        config: &Config,
+        running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        let (witness, result) = self.player_walk_inner(direction, running);
+        if result.is_ok() {
+            self.update_visibility(config);
+        }
+        (witness, result)
     }
 }

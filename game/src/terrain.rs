@@ -5,6 +5,7 @@ use crate::{
 };
 use entity_table::Entity;
 use grid_2d::{Coord, Size};
+use rgb_int::Rgb24;
 
 pub struct Terrain {
     pub world: World,
@@ -18,6 +19,7 @@ pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
     let mut world = World::new(size);
     let mut player_data = Some(player_data);
     let mut player = None;
+    let mut prev_wall = false;
     for (y, row) in rows.iter().enumerate() {
         for (x, ch) in row.chars().enumerate() {
             if ch.is_control() {
@@ -32,23 +34,41 @@ pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
                     world.spawn_ground(coord);
                 }
                 '&' => {
-                    world.spawn_floor(coord);
+                    world.spawn_ground(coord);
                     world.spawn_tree(coord);
+                }
+                'L' => {
+                    world.spawn_floor(coord);
+                    world.spawn_light(coord, Rgb24::new(255, 50, 0));
+                }
+                'M' => {
+                    world.spawn_floor(coord);
+                    world.spawn_light(coord, Rgb24::new(255, 255, 255));
                 }
                 '#' => {
                     world.spawn_floor(coord);
                     world.spawn_wall(coord);
+                    prev_wall = true;
+                    continue;
                 }
                 '+' => {
                     world.spawn_floor(coord);
-                    world.spawn_wall(coord);
+                    if prev_wall {
+                        world.spawn_door(coord, direction::Axis::Y);
+                    } else {
+                        world.spawn_door(coord, direction::Axis::X);
+                    }
                 }
                 '%' => {
                     world.spawn_floor(coord);
-                    world.spawn_window(coord, direction::Axis::X);
+                    if prev_wall {
+                        world.spawn_window(coord, direction::Axis::Y);
+                    } else {
+                        world.spawn_window(coord, direction::Axis::X);
+                    }
                 }
                 '@' => {
-                    world.spawn_floor(coord);
+                    world.spawn_ground(coord);
                     let location = Location {
                         coord,
                         layer: Some(Layer::Character),
@@ -62,6 +82,7 @@ pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
                     ch
                 ),
             }
+            prev_wall = false;
         }
     }
     let player = player.expect("didn't create player");

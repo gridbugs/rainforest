@@ -53,7 +53,7 @@ enum TileLabel {
 
 fn tile_str(tile: Tile) -> Option<TileLabel> {
     let label = match tile {
-        Tile::Player => TileLabel::Literal("You"),
+        Tile::Player => TileLabel::Literal("It's you!"),
         Tile::DoorClosed(_) | Tile::DoorOpen(_) => TileLabel::Name("a door"),
         Tile::Wall => TileLabel::Name("a wall"),
         Tile::Floor => TileLabel::Name("the floor"),
