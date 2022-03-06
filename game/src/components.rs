@@ -34,6 +34,9 @@ pub enum Tile {
     DoorOpen(Axis),
     Window(Axis),
     Water,
+    RuinsWall,
+    RuinsFloor,
+    Altar,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -55,12 +55,13 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
     let label = match tile {
         Tile::Player => TileLabel::Literal("It's you!"),
         Tile::DoorClosed(_) | Tile::DoorOpen(_) => TileLabel::Name("a door"),
-        Tile::Wall => TileLabel::Name("a wall"),
-        Tile::Floor => TileLabel::Name("the floor"),
+        Tile::Wall | Tile::RuinsWall => TileLabel::Name("a wall"),
+        Tile::Floor | Tile::RuinsFloor => TileLabel::Name("the floor"),
         Tile::Ground => TileLabel::Name("the ground"),
         Tile::Window(_) => TileLabel::Name("a window"),
         Tile::Tree0 | Tile::Tree1 | Tile::Tree2 => TileLabel::Name("a tree"),
         Tile::Water => TileLabel::Name("water"),
+        Tile::Altar => TileLabel::Name("an altar"),
     };
     Some(label)
 }

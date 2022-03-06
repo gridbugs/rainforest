@@ -25,7 +25,7 @@ impl Mist {
     pub fn get(&self, coord: Coord) -> Rgba32 {
         let noise = self
             .perlin
-            .noise01((coord.x as f64 * 0.05 + self.offset_x, coord.y as f64 * 0.4));
+            .noise01((coord.x as f64 * 0.05 + self.offset_x, coord.y as f64 * 0.2));
         let alpha = (self.intensity * 255. * noise) as u8;
         Rgba32::new(255, 255, 255, alpha)
     }

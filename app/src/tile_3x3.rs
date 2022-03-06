@@ -53,6 +53,20 @@ pub fn render_3x3_from_visibility(
             let colour_hint = game.colour_hint(entity).unwrap();
             water(colour_hint, ctx, fb);
         }
+        Tile::RuinsWall => {
+            let below = world_coord + Coord::new(0, 1);
+            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
+                if render_cell.tile_layers().feature.is_some() {
+                    ruins_wall_top(ctx, fb);
+                } else {
+                    ruins_wall_front(ctx, fb);
+                }
+            } else {
+                ruins_wall_front(ctx, fb);
+            }
+        }
+        Tile::RuinsFloor => ruins_floor(ctx, fb),
+        Tile::Altar => altar(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -107,6 +121,20 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::DoorClosed(Axis::X) => door_closed_x(ctx, fb),
         Tile::DoorClosed(Axis::Y) => door_closed_y(ctx, fb),
         Tile::Water => water(Rgb24::new_grey(128), ctx, fb),
+        Tile::RuinsWall => {
+            let below = world_coord + Coord::new(0, 1);
+            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
+                if render_cell.tile_layers().feature.is_some() {
+                    ruins_wall_top(ctx, fb);
+                } else {
+                    ruins_wall_front(ctx, fb);
+                }
+            } else {
+                ruins_wall_front(ctx, fb);
+            }
+        }
+        Tile::RuinsFloor => ruins_floor(ctx, fb),
+        Tile::Altar => altar(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -952,4 +980,119 @@ pub fn water(colour_hint: Rgb24, ctx: Ctx, fb: &mut FrameBuffer) {
                 .with_background(colour_hint.to_rgba32(255)),
         );
     }
+}
+
+pub fn ruins_wall_top(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset,
+            0,
+            RenderCell::default()
+                .with_character(' ')
+                .with_background(colour::RUINS_WALL_TOP),
+        );
+    }
+}
+
+pub fn ruins_wall_front(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 1).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset,
+            0,
+            RenderCell::default()
+                .with_character(' ')
+                .with_background(colour::RUINS_WALL_TOP),
+        );
+    }
+    for offset in Size::new_u16(3, 2).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset + Coord::new(0, 1),
+            0,
+            RenderCell::default()
+                .with_character('░')
+                .with_background(colour::RUINS_WALL_FRONT_BACKGROUND)
+                .with_foreground(colour::RUINS_WALL_FRONT_FOREGROUND),
+        );
+    }
+}
+
+fn ruins_floor(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset,
+            0,
+            RenderCell::default()
+                .with_character(' ')
+                .with_background(colour::RUINS_FLOOR_BACKGROUND),
+        );
+    }
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 1 },
+        0,
+        RenderCell::default()
+            .with_character('▪')
+            .with_foreground(colour::RUINS_FLOOR_FOREGROUND),
+    );
+}
+
+pub fn altar(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('║')
+            .with_foreground(colour::ALTAR_TOP_FOREGROUND)
+            .with_background(colour::RUINS_WALL_TOP),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('@')
+            .with_foreground(colour::ALTAR_TOP_FOREGROUND)
+            .with_background(colour::RUINS_WALL_TOP),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('║')
+            .with_foreground(colour::ALTAR_TOP_FOREGROUND)
+            .with_background(colour::RUINS_WALL_TOP),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('╠')
+            .with_foreground(colour::ALTAR_FOREGROUND)
+            .with_background(colour::RUINS_WALL_FRONT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('╦')
+            .with_foreground(colour::ALTAR_FOREGROUND)
+            .with_background(colour::RUINS_WALL_FRONT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('╣')
+            .with_foreground(colour::ALTAR_FOREGROUND)
+            .with_background(colour::RUINS_WALL_FRONT_BACKGROUND),
+    );
 }

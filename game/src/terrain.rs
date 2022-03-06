@@ -107,7 +107,6 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     let light_colour = Rgb24::new(255, 185, 100);
     let mut world = World::new(size);
     let mut player_data = Some(player_data);
-    let mut player = None;
     let topography_grid = Grid::new_fn(size, |coord| {
         topography.noise01((
             coord.x as f64 * topography_spread,
@@ -185,13 +184,54 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             world.spawn_wall(coord);
         }
     }
-
     let player_location = Location {
         coord: cabin_coord
             + door_direction.coord() * cabin_size.get(door_direction.axis()) as i32 * 2,
         layer: Some(Layer::Character),
     };
-    player = Some(world.insert_entity_data(player_location, player_data.take().unwrap()));
+    let player = world.insert_entity_data(player_location, player_data.take().unwrap());
+    let ruins_coord = topography_grid
+        .enumerate()
+        .filter_map(|(coord, &f)| {
+            if coord.x > padding
+                && coord.y > padding
+                && coord.x < size.x() as i32 - padding
+                && coord.y < size.y() as i32 - padding
+                && coord.manhattan_distance(cabin_coord) > 30
+                && f > 0.65
+            {
+                Some(coord)
+            } else {
+                None
+            }
+        })
+        .choose(rng)
+        .ok_or("no ruins coord")?;
+    let ruins_txt = include_str!("ruins_prefab.txt");
+    let ruins_num_rotations = rng.gen_range(0..4);
+    for (y, row) in ruins_txt.split('\n').filter(|s| !s.is_empty()).enumerate() {
+        for (x, ch) in row.chars().enumerate() {
+            let mut out_coord = Coord::new(x as i32, y as i32);
+            for _ in 0..ruins_num_rotations {
+                out_coord = out_coord.left90();
+            }
+            out_coord += ruins_coord;
+            match ch {
+                '#' => {
+                    world.spawn_ruins_floor(out_coord);
+                    world.spawn_ruins_wall(out_coord);
+                }
+                '.' => {
+                    world.spawn_ruins_floor(out_coord);
+                }
+                '?' => {
+                    world.spawn_ruins_floor(out_coord);
+                    world.spawn_altar(out_coord);
+                }
+                other => panic!("unexpected char {}", other),
+            }
+        }
+    }
     for coord in size.coord_iter_row_major() {
         if world.spatial_table.layers_at_checked(coord).floor.is_some() {
             continue;
@@ -210,7 +250,6 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         }
         world.spawn_ground(coord);
     }
-    let player = player.expect("didn't create player");
     Ok(Terrain { world, player })
 }
 

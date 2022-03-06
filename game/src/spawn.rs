@@ -167,4 +167,52 @@ impl World {
         self.components.realtime.insert(entity, ());
         entity
     }
+
+    pub fn spawn_ruins_floor(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Floor),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::RuinsFloor);
+        entity
+    }
+
+    pub fn spawn_ruins_wall(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::RuinsWall);
+        self.components.solid.insert(entity, ());
+        self.components.opacity.insert(entity, 255);
+        entity
+    }
+
+    pub fn spawn_altar(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Altar);
+        self.components.solid.insert(entity, ());
+        entity
+    }
 }
