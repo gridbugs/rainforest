@@ -11,3 +11,5 @@ pub const DOOR_BORDER: Rgba32 = Rgba32::hex_rgb(0x362d11);
 pub const PLAYER: Rgba32 = Rgba32::new_grey(255);
 pub const WOOD: Rgba32 = Rgba32::hex_rgb(0x362d11);
 pub const LEAF: Rgba32 = Rgba32::hex_rgb(0x376315);
+pub const RAIN: Rgba32 = Rgba32::new_rgb(50, 120, 150);
+pub const RAIN_REMEMBERED: Rgba32 = Rgba32::new_rgb(80, 90, 100);

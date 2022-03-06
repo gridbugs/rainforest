@@ -1,11 +1,13 @@
 use direction::CardinalDirection;
 use grid_2d::{Coord, Size};
 use rand::Rng;
+use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod components;
+mod realtime;
 mod spatial;
 mod spawn;
 mod terrain;
@@ -13,8 +15,9 @@ mod visibility;
 pub mod witness;
 mod world;
 
-pub use components::Tile;
+pub use components::{DoorState, Tile};
 pub use entity_table::Entity;
+use realtime::AnimationContext;
 pub use spatial::Layer;
 use terrain::Terrain;
 pub use visibility::{CellVisibility, EntityTile, Omniscient, VisibilityCell, VisibilityGrid};
@@ -47,18 +50,23 @@ pub struct Game {
     shadowcast_context: ShadowcastContext<u8>,
     world: World,
     player: Entity,
+    animation_context: AnimationContext,
 }
 
 impl Game {
-    pub fn new<R: Rng>(config: &Config, _base_rng: &mut R) -> Self {
-        let Terrain { world, player } =
-            terrain::from_str(include_str!("demo_terrain.txt"), components::make_player());
+    pub fn new<R: Rng>(config: &Config, base_rng: &mut R) -> Self {
+        let Terrain { world, player } = terrain::from_str(
+            include_str!("demo_terrain.txt"),
+            components::make_player(),
+            base_rng,
+        );
         let visibility_grid = VisibilityGrid::new(world.size());
         let mut game = Self {
             visibility_grid,
             shadowcast_context: ShadowcastContext::default(),
             world,
             player,
+            animation_context: AnimationContext::default(),
         };
         game.update_visibility(config);
         game
@@ -87,6 +95,14 @@ impl Game {
             .expect("can't find coord of player")
     }
 
+    pub fn should_hide_rain(&self, coord: Coord) -> bool {
+        self.world.should_hide_rain(coord)
+    }
+
+    pub fn colour_hint(&self, entity: Entity) -> Option<Rgb24> {
+        self.world.components.colour_hint.get(entity).cloned()
+    }
+
     fn update_visibility(&mut self, config: &Config) {
         if let Some(player_coord) = self.world.entity_coord(self.player) {
             self.visibility_grid.update(
@@ -108,6 +124,7 @@ impl Game {
         _config: &Config,
         running: witness::Running,
     ) -> Witness {
+        self.animation_context.tick(&mut self.world);
         running.into_witness()
     }
 
@@ -129,6 +146,20 @@ impl Game {
                         self.world.open_door(feature);
                         return (running.into_witness(), Ok(()));
                     } else {
+                        for d in [direction.left90(), direction.right90()] {
+                            if let Some(layers) =
+                                self.world.spatial_table.layers_at(destination + d.coord())
+                            {
+                                if let Some(feature) = layers.feature {
+                                    if let Some(DoorState::Open) =
+                                        self.world.components.door_state.get(feature)
+                                    {
+                                        self.world.close_door(feature);
+                                        return (running.into_witness(), Ok(()));
+                                    }
+                                }
+                            }
+                        }
                         return (running.into_witness(), ActionError::err_cant_walk_there());
                     }
                 }

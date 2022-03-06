@@ -14,6 +14,8 @@ declare_entity_module! {
         player: Player,
         door_state: DoorState,
         light: Light,
+        colour_hint: Rgb24,
+        realtime: (),
     }
 }
 pub use components::Components;
@@ -25,10 +27,13 @@ pub enum Tile {
     Wall,
     Floor,
     Ground,
-    Tree,
+    Tree0,
+    Tree1,
+    Tree2,
     DoorClosed(Axis),
     DoorOpen(Axis),
     Window(Axis),
+    Water,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

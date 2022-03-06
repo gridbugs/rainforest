@@ -11,6 +11,7 @@ members = [
     "ggez",
     "wgpu",
     "util/rational",
+    "util/rand-range",
 ]
 
 [profile.release]

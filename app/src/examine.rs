@@ -59,7 +59,8 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
         Tile::Floor => TileLabel::Name("the floor"),
         Tile::Ground => TileLabel::Name("the ground"),
         Tile::Window(_) => TileLabel::Name("a window"),
-        Tile::Tree => TileLabel::Name("a tree"),
+        Tile::Tree0 | Tile::Tree1 | Tile::Tree2 => TileLabel::Name("a tree"),
+        Tile::Water => TileLabel::Name("water"),
     };
     Some(label)
 }

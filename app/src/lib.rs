@@ -8,6 +8,8 @@ mod examine;
 mod fields;
 mod game;
 mod game_loop;
+mod mist;
+mod rain;
 mod text;
 mod tile_3x3;
 

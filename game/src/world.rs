@@ -1,5 +1,6 @@
 use crate::{
-    components::{Components, EntityData, Tile},
+    components::{Components, DoorState, EntityData, Tile},
+    realtime::RealtimeComponents,
     spatial::{Location, SpatialTable},
     visibility::Light,
 };
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct World {
     pub entity_allocator: EntityAllocator,
     pub components: Components,
+    pub realtime_components: RealtimeComponents,
     pub spatial_table: SpatialTable,
 }
 
@@ -19,9 +21,11 @@ impl World {
         let entity_allocator = EntityAllocator::default();
         let components = Components::default();
         let spatial_table = SpatialTable::new(size);
+        let realtime_components = RealtimeComponents::default();
         Self {
             entity_allocator,
             components,
+            realtime_components,
             spatial_table,
         }
     }
@@ -69,6 +73,30 @@ impl World {
         }
     }
 
+    pub fn should_hide_rain(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial_table.layers_at(coord) {
+            if let Some(entity) = spatial_cell.floor {
+                let is_floor = self.components.tile.get(entity) == Some(&Tile::Floor);
+                let ground_below = if let Some(spatial_cell) =
+                    self.spatial_table.layers_at(coord + Coord { x: 0, y: 1 })
+                {
+                    if let Some(entity) = spatial_cell.floor {
+                        self.components.tile.get(entity) == Some(&Tile::Ground)
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+                is_floor && !ground_below
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
     pub fn entity_coord(&self, entity: Entity) -> Option<Coord> {
         self.spatial_table.coord_of(entity)
     }
@@ -76,6 +104,7 @@ impl World {
     pub fn open_door(&mut self, door: Entity) {
         self.components.solid.remove(door);
         self.components.opacity.remove(door);
+        self.components.door_state.insert(door, DoorState::Open);
         let axis = match self
             .components
             .tile
@@ -86,5 +115,21 @@ impl World {
             _ => panic!("unexpected tile on door"),
         };
         self.components.tile.insert(door, Tile::DoorOpen(axis));
+    }
+
+    pub fn close_door(&mut self, door: Entity) {
+        self.components.solid.insert(door, ());
+        self.components.opacity.insert(door, 255);
+        self.components.door_state.insert(door, DoorState::Closed);
+        let axis = match self
+            .components
+            .tile
+            .get(door)
+            .expect("door lacks tile component")
+        {
+            Tile::DoorClosed(axis) | Tile::DoorOpen(axis) => *axis,
+            _ => panic!("unexpected tile on door"),
+        };
+        self.components.tile.insert(door, Tile::DoorClosed(axis));
     }
 }

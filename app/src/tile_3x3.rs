@@ -18,7 +18,7 @@ pub fn render_3x3_from_visibility(
     fb: &mut FrameBuffer,
 ) {
     let ctx = ctx.add_offset(screen_coord * 3);
-    let mut render_tile = |_entity, tile, ctx| match tile {
+    let mut render_tile = |entity, tile, ctx| match tile {
         Tile::Wall => {
             let below = world_coord + Coord::new(0, 1);
             if let Some(render_cell) = game.visibility_grid().get_cell(below) {
@@ -38,7 +38,9 @@ pub fn render_3x3_from_visibility(
                 .map(|rgb24| ground(rgb24, ctx, fb));
         }
         Tile::Player => player(ctx, fb),
-        Tile::Tree => tree(ctx, fb),
+        Tile::Tree0 => tree0(ctx, fb),
+        Tile::Tree1 => tree1(ctx, fb),
+        Tile::Tree2 => tree2(ctx, fb),
         Tile::Window(Axis::Y) => {
             window_y(world_coord, log_field, ctx, fb);
         }
@@ -47,6 +49,10 @@ pub fn render_3x3_from_visibility(
         Tile::DoorOpen(Axis::Y) => door_open_y(ctx, fb),
         Tile::DoorClosed(Axis::X) => door_closed_x(ctx, fb),
         Tile::DoorClosed(Axis::Y) => door_closed_y(ctx, fb),
+        Tile::Water => {
+            let colour_hint = game.colour_hint(entity).unwrap();
+            water(colour_hint, ctx, fb);
+        }
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -88,7 +94,9 @@ pub fn render_3x3_from_visibility_remembered(
         }
         Tile::Floor => floor(ctx, fb),
         Tile::Ground => ground(Rgb24::new_grey(10), ctx, fb),
-        Tile::Tree => tree(ctx, fb),
+        Tile::Tree0 => tree0(ctx, fb),
+        Tile::Tree1 => tree1(ctx, fb),
+        Tile::Tree2 => tree2(ctx, fb),
         Tile::Player => player(ctx, fb),
         Tile::Window(Axis::Y) => {
             window_y(world_coord, log_field, ctx, fb);
@@ -98,6 +106,7 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::DoorOpen(Axis::Y) => door_open_y(ctx, fb),
         Tile::DoorClosed(Axis::X) => door_closed_x(ctx, fb),
         Tile::DoorClosed(Axis::Y) => door_closed_y(ctx, fb),
+        Tile::Water => water(Rgb24::new_grey(128), ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -709,7 +718,7 @@ pub fn wall_front(world_coord: Coord, log_field: &LogField, ctx: Ctx, fb: &mut F
     }
 }
 
-pub fn tree(ctx: Ctx, fb: &mut FrameBuffer) {
+pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     let ctx = ctx.add_y(-4).add_depth(2);
     fb.set_cell_relative_to_ctx(
         ctx,
@@ -778,4 +787,169 @@ pub fn tree(ctx: Ctx, fb: &mut FrameBuffer) {
             .with_foreground(colour::WOOD)
             .with_background(colour::LEAF),
     );
+}
+
+pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
+    let ctx = ctx.add_y(-4).add_depth(2);
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 1 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 2 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 3 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 4 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 5 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 0 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 0, y: 3 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 2, y: 2 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+}
+
+pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
+    let ctx = ctx.add_y(-4).add_depth(2);
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 1 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 2 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 3 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 4 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 5 },
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 0 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 0, y: 2 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 2, y: 1 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 2, y: 4 },
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD)
+            .with_background(colour::LEAF),
+    );
+}
+
+pub fn water(colour_hint: Rgb24, ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset,
+            0,
+            RenderCell::default()
+                .with_character('~')
+                .with_foreground(colour_hint.saturating_scalar_mul_div(1, 2).to_rgba32(255))
+                .with_background(colour_hint.to_rgba32(255)),
+        );
+    }
 }

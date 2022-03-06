@@ -1,11 +1,14 @@
 use crate::{
     components::{DoorState, Tile},
+    realtime::flicker,
     spatial::{Layer, Location},
     visibility::Light,
     world::World,
 };
 use entity_table::Entity;
 use grid_2d::coord_2d::{Axis, Coord};
+use rand::{seq::SliceRandom, Rng};
+use rand_range::UniformInclusiveRange;
 use rational::Rational;
 use rgb_int::Rgb24;
 use shadowcast::vision_distance::Circle;
@@ -58,7 +61,7 @@ impl World {
         entity
     }
 
-    pub fn spawn_tree(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_tree<R: Rng>(&mut self, coord: Coord, rng: &mut R) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(
@@ -69,7 +72,8 @@ impl World {
                 },
             )
             .unwrap();
-        self.components.tile.insert(entity, Tile::Tree);
+        let &tile = [Tile::Tree0, Tile::Tree1, Tile::Tree2].choose(rng).unwrap();
+        self.components.tile.insert(entity, tile);
         self.components.solid.insert(entity, ());
         self.components.opacity.insert(entity, 127);
         entity
@@ -125,6 +129,42 @@ impl World {
                 },
             },
         );
+        entity
+    }
+
+    pub fn spawn_water<R: Rng>(&mut self, coord: Coord, rng: &mut R) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Floor),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Water);
+        let colour_range = UniformInclusiveRange {
+            low: Rgb24::new(10, 40, 100),
+            high: Rgb24::new(20, 90, 150),
+        };
+        self.realtime_components.flicker.insert(entity, {
+            use flicker::spec::*;
+            Flicker {
+                colour_hint: Some(colour_range),
+                light_colour: None,
+                tile: None,
+                until_next_event: UniformInclusiveRange {
+                    low: Duration::from_millis(200),
+                    high: Duration::from_millis(1000),
+                },
+            }
+            .build(rng)
+        });
+        self.components
+            .colour_hint
+            .insert(entity, colour_range.choose(rng));
+        self.components.realtime.insert(entity, ());
         entity
     }
 }

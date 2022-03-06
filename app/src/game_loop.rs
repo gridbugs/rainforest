@@ -3,6 +3,8 @@ use crate::{
     controls::{AppInput, Controls},
     examine,
     fields::{GroundField, LogField},
+    mist::Mist,
+    rain::{Rain, RainDirection},
     text, AppStorage, InitialRngSeed,
 };
 use chargrid::{border::BorderStyle, control_flow::boxed::*, menu, prelude::*, text::StyledString};
@@ -63,6 +65,8 @@ pub struct GameInstanceStorable {
     running_game: RunningGame,
     ground_field: GroundField,
     log_field: LogField,
+    rain: Rain,
+    mist: Mist,
 }
 
 impl GameInstanceStorable {
@@ -71,6 +75,8 @@ impl GameInstanceStorable {
             running_game,
             ground_field,
             log_field,
+            rain,
+            mist,
         } = self;
         let (game, running) = running_game.into_game();
         (
@@ -78,6 +84,8 @@ impl GameInstanceStorable {
                 game,
                 ground_field,
                 log_field,
+                rain,
+                mist,
             },
             running,
         )
@@ -88,6 +96,8 @@ struct GameInstance {
     game: Game,
     ground_field: GroundField,
     log_field: LogField,
+    rain: Rain,
+    mist: Mist,
 }
 
 impl GameInstance {
@@ -95,11 +105,15 @@ impl GameInstance {
         let (game, running) = witness::new_game(config, rng);
         let ground_field = GroundField::new(game.world_size(), rng);
         let log_field = LogField::new(game.world_size(), rng);
+        let rain = Rain::new(&game, 3000, RainDirection::Diagonal, rng);
+        let mist = Mist::new(rng);
         (
             GameInstance {
                 game,
                 ground_field,
                 log_field,
+                rain,
+                mist,
             },
             running,
         )
@@ -110,26 +124,34 @@ impl GameInstance {
             game,
             ground_field,
             log_field,
+            rain,
+            mist,
         } = self;
         let running_game = game.into_running_game(running);
         GameInstanceStorable {
             running_game,
             ground_field,
             log_field,
+            rain,
+            mist,
         }
     }
 
     pub fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         let offset = self.game.player_coord() - (GAME_VIEW_SIZE / 2);
+        let ctx = ctx.add_offset(GAME_VIEW_OFFSET);
         crate::game::render_game_with_visibility(
             &self.game,
             offset,
             GAME_VIEW_SIZE,
             &self.ground_field,
             &self.log_field,
-            ctx.add_offset(GAME_VIEW_OFFSET),
+            &self.mist,
+            ctx,
             fb,
         );
+        self.rain
+            .render(&self.game, offset, GAME_VIEW_SIZE, ctx, fb);
     }
 }
 
@@ -288,6 +310,8 @@ impl GameLoopData {
                 }
             }
             Event::Tick(since_previous) => {
+                instance.rain.tick();
+                instance.mist.tick();
                 instance
                     .game
                     .tick(since_previous, &self.game_config, running)

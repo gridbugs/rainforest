@@ -5,6 +5,7 @@ use crate::{
 };
 use entity_table::Entity;
 use grid_2d::{Coord, Size};
+use rand::Rng;
 use rgb_int::Rgb24;
 
 pub struct Terrain {
@@ -13,7 +14,7 @@ pub struct Terrain {
 }
 
 #[allow(dead_code)]
-pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
+pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrain {
     let rows = s.split('\n').filter(|s| !s.is_empty()).collect::<Vec<_>>();
     let size = Size::new_u16(rows[0].len() as u16, rows.len() as u16);
     let mut world = World::new(size);
@@ -35,11 +36,11 @@ pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
                 }
                 '&' => {
                     world.spawn_ground(coord);
-                    world.spawn_tree(coord);
+                    world.spawn_tree(coord, rng);
                 }
                 'L' => {
                     world.spawn_floor(coord);
-                    world.spawn_light(coord, Rgb24::new(255, 50, 0));
+                    world.spawn_light(coord, Rgb24::new(255, 185, 100));
                 }
                 'M' => {
                     world.spawn_floor(coord);
@@ -66,6 +67,9 @@ pub fn from_str(s: &str, player_data: EntityData) -> Terrain {
                     } else {
                         world.spawn_window(coord, direction::Axis::X);
                     }
+                }
+                '~' => {
+                    world.spawn_water(coord, rng);
                 }
                 '@' => {
                     world.spawn_ground(coord);
