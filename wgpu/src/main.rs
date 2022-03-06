@@ -42,8 +42,8 @@ fn main() {
         },
         title: "Rain Forest".to_string(),
         window_dimensions_px: Dimensions {
-            width: 1280.,
-            height: 960.,
+            width: 960.,
+            height: 720.,
         },
         cell_dimensions_px: Dimensions {
             width: CELL_SIZE,

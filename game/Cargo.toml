@@ -16,5 +16,6 @@ rand_range = { path = "../util/rand-range" }
 rgb_int = { version = "0.1", features = ["serialize", "rand"] }
 entity_table = { version = "0.2", features = ["serialize"] }
 entity_table_realtime = { version = "0.1", features = ["serialize"] }
+perlin2 = "0.1"
 spatial_table = { version = "0.3", features = ["serialize"] }
 shadowcast = { version = "0.8", features = ["serialize"] }

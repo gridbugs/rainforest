@@ -1,6 +1,7 @@
 use direction::CardinalDirection;
 use grid_2d::{Coord, Size};
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand_isaac::Isaac64Rng;
 use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
 use shadowcast::Context as ShadowcastContext;
@@ -55,11 +56,13 @@ pub struct Game {
 
 impl Game {
     pub fn new<R: Rng>(config: &Config, base_rng: &mut R) -> Self {
-        let Terrain { world, player } = terrain::from_str(
-            include_str!("demo_terrain.txt"),
-            components::make_player(),
-            base_rng,
-        );
+        let mut rng = Isaac64Rng::from_rng(base_rng).unwrap();
+        let player_data = components::make_player();
+        let Terrain { world, player } = if config.debug {
+            terrain::from_str(include_str!("demo_terrain.txt"), player_data, &mut rng)
+        } else {
+            terrain::generate(player_data, &mut rng)
+        };
         let visibility_grid = VisibilityGrid::new(world.size());
         let mut game = Self {
             visibility_grid,

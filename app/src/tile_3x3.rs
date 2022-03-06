@@ -725,40 +725,40 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
         Coord { x: 1, y: 1 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
@@ -796,40 +796,40 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
         Coord { x: 1, y: 1 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
@@ -867,40 +867,40 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
         Coord { x: 1, y: 1 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
         0,
         RenderCell::default()
-            .with_character('█')
-            .with_foreground(colour::WOOD),
+            .with_character(' ')
+            .with_background(colour::WOOD),
     );
     fb.set_cell_relative_to_ctx(
         ctx,

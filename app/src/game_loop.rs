@@ -16,8 +16,8 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 
-const GAME_VIEW_SIZE: Size = Size::new_u16(25, 19);
-const GAME_VIEW_OFFSET: Coord = Coord::new(0, 2);
+const GAME_VIEW_SIZE: Size = Size::new_u16(26, 18);
+const GAME_VIEW_OFFSET: Coord = Coord::new(1, 2);
 
 /// An interactive, renderable process yielding a value of type `T`
 pub type CF<T> = BoxedCF<Option<T>, GameLoopData>;
@@ -105,7 +105,7 @@ impl GameInstance {
         let (game, running) = witness::new_game(config, rng);
         let ground_field = GroundField::new(game.world_size(), rng);
         let log_field = LogField::new(game.world_size(), rng);
-        let rain = Rain::new(&game, 3000, RainDirection::Diagonal, rng);
+        let rain = Rain::new(&game, 6000, RainDirection::Diagonal, rng);
         let mist = Mist::new(rng);
         (
             GameInstance {
@@ -251,7 +251,7 @@ impl GameLoopData {
                 }
             }
         }
-        self.render_text(ctx, fb);
+        self.render_text(ctx.add_depth(20), fb);
     }
 
     fn render_text(&self, ctx: Ctx, fb: &mut FrameBuffer) {
@@ -267,7 +267,12 @@ impl GameLoopData {
         match event {
             Event::Input(Input::Mouse(mouse_input)) => match mouse_input {
                 MouseInput::MouseMove { button: _, coord } => {
-                    self.cursor = Some((coord - GAME_VIEW_OFFSET) / 3);
+                    let cursor = (coord - GAME_VIEW_OFFSET) / 3;
+                    if cursor.is_valid(GAME_VIEW_SIZE) {
+                        self.cursor = Some(cursor);
+                    } else {
+                        self.cursor = None;
+                    }
                 }
                 _ => (),
             },
