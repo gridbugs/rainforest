@@ -50,12 +50,13 @@ impl Rain {
         let size = game.world_size() * 3;
         let mut drops = Vec::with_capacity(MAX_NUM_DROPS);
         for _ in 0..MAX_NUM_DROPS {
+            let coord = Coord::new(
+                rng.gen_range(0..(size.width() as i32 * 2)),
+                rng.gen_range(0..(size.height() as i32)),
+            );
             drops.push(RainDrop {
-                coord: Coord::new(
-                    rng.gen_range(0..(size.width() as i32 * 2)),
-                    rng.gen_range(0..(size.height() as i32)),
-                ),
-                remaining: rng.gen_range(0..size.height()),
+                coord,
+                remaining: size.height() - coord.y as u32,
                 state: RainDropState::Falling,
             });
         }
@@ -99,11 +100,9 @@ impl Rain {
                         drop.remaining = remaining;
                     } else {
                         drop.state = RainDropState::Falling;
-                        drop.remaining = self.rng.gen_range(0..self.size.height());
-                        drop.coord = Coord::new(
-                            self.rng.gen_range(0..(self.size.width() as i32 * 2)),
-                            self.rng.gen_range(0..(self.size.height() as i32)),
-                        );
+                        drop.remaining = self.size.height();
+                        drop.coord =
+                            Coord::new(self.rng.gen_range(0..(self.size.width() as i32 * 2)), 0);
                     }
                 }
             }

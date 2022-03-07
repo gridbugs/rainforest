@@ -47,6 +47,11 @@ pub enum Tile {
     FlatGrass,
     Rock,
     Flower,
+    Bed,
+    ChairLeftFacing,
+    ChairRightFacing,
+    Teapot,
+    Tea,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

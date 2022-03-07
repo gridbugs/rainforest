@@ -98,7 +98,7 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
     Terrain { world, player }
 }
 
-const SIZE: Size = Size::new_u16(120, 120);
+const SIZE: Size = Size::new_u16(140, 140);
 
 fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain, &str> {
     let size = SIZE;
@@ -134,6 +134,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         })
         .choose(rng)
         .ok_or("no cabin coord")?;
+    world.spawn_bed(cabin_coord);
     world.spawn_light(cabin_coord, Rgb24::new(255, 255, 255));
     let cabin_size = Size::new(9, 9);
     let cabin_top_left = cabin_coord - (cabin_size.to_coord().unwrap() / 2);
@@ -143,6 +144,8 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     let door_direction = rng.gen::<CardinalDirection>();
     let door_coord =
         cabin_coord + door_direction.coord() * cabin_size.get(door_direction.axis()) as i32 / 2;
+    *no_trees.get_checked_mut(door_coord + door_direction.coord()) = true;
+    *no_trees.get_checked_mut(door_coord + door_direction.coord() * 2) = true;
     world.spawn_door(door_coord, door_direction.axis());
     world.spawn_light(door_coord - door_direction.coord(), light_colour);
     let lamp_coord =
@@ -153,6 +156,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     world.spawn_bulletin_board(bulletin_board_coord);
     *no_trees.get_checked_mut(bulletin_board_coord + Coord::new(0, 1)) = true;
     *no_trees.get_checked_mut(bulletin_board_coord + Coord::new(0, 2)) = true;
+    let mut chair_candidates = Vec::new();
     for coord in [
         door_direction.left90().coord(),
         door_direction.right90().coord(),
@@ -161,6 +165,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             door_coord + coord * cabin_size.get(door_direction.axis().other()) as i32 / 4;
         world.spawn_window(window_coord, door_direction.axis());
         world.spawn_light(window_coord - door_direction.coord(), light_colour);
+        chair_candidates.push(window_coord - door_direction.coord());
     }
     for direction in [
         door_direction.left90(),
@@ -171,13 +176,37 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             cabin_coord + direction.coord() * cabin_size.get(direction.axis()) as i32 / 2;
         world.spawn_window(mid_coord, direction.axis());
         world.spawn_light(mid_coord - direction.coord(), light_colour);
+        chair_candidates.push(mid_coord - direction.coord());
         for coord in [direction.left90().coord(), direction.right90().coord()] {
             let window_coord =
                 mid_coord + coord * cabin_size.get(direction.axis().other()) as i32 / 4;
             world.spawn_window(window_coord, direction.axis());
             world.spawn_light(window_coord - direction.coord(), light_colour);
+            chair_candidates.push(window_coord - direction.coord());
         }
     }
+    let &chair_coord = chair_candidates.choose(rng).unwrap();
+    if chair_coord.x < cabin_coord.x {
+        world.spawn_chair_left_facing(chair_coord);
+    } else {
+        world.spawn_chair_right_facing(chair_coord);
+    }
+    let chair_window_direction = CardinalDirection::all()
+        .find(|d| {
+            world
+                .spatial_table
+                .layers_at_checked(chair_coord + d.coord())
+                .feature
+                .is_some()
+        })
+        .unwrap();
+    let teapot_coord = chair_coord
+        + if rng.gen() {
+            chair_window_direction.left90().coord()
+        } else {
+            chair_window_direction.right90().coord()
+        };
+    world.spawn_teapot(teapot_coord);
     for offset in cabin_size.coord_iter_row_major() {
         let coord = cabin_top_left + offset;
         if world
@@ -209,7 +238,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 && coord.y > padding
                 && coord.x < size.x() as i32 - padding
                 && coord.y < size.y() as i32 - padding
-                && coord.manhattan_distance(cabin_coord) > 30
+                && coord.manhattan_distance(cabin_coord) > 20
                 && f > 0.65
             {
                 Some(coord)
@@ -254,11 +283,11 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     && coord.y > padding
                     && coord.x < size.x() as i32 - padding
                     && coord.y < size.y() as i32 - padding
-                    && coord.manhattan_distance(cabin_coord) > 30
-                    && coord.manhattan_distance(ruins_coord) > 30
+                    && coord.manhattan_distance(cabin_coord) > 20
+                    && coord.manhattan_distance(ruins_coord) > 20
                     && lamp_coords
                         .iter()
-                        .all(|&c| coord.manhattan_distance(c) > 30)
+                        .all(|&c| coord.manhattan_distance(c) > 20)
             })
             .choose(rng)
             .ok_or("no lamp coord")?;
@@ -343,8 +372,8 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 && coord.y > padding
                 && coord.x < size.x() as i32 - padding
                 && coord.y < size.y() as i32 - padding
-                && coord.manhattan_distance(cabin_coord) > 30
-                && coord.manhattan_distance(ruins_coord) > 30
+                && coord.manhattan_distance(cabin_coord) > 20
+                && coord.manhattan_distance(ruins_coord) > 20
                 && f > 0.65
             {
                 Some(coord)
@@ -373,6 +402,46 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     }
     for &coord in flower_candidates.choose_multiple(rng, num_flowers) {
         world.spawn_flower(coord);
+        *no_trees.get_checked_mut(coord) = true;
+    }
+    let tea_patch_coord = topography_grid
+        .enumerate()
+        .filter_map(|(coord, &f)| {
+            if coord.x > padding
+                && coord.y > padding
+                && coord.x < size.x() as i32 - padding
+                && coord.y < size.y() as i32 - padding
+                && coord.manhattan_distance(cabin_coord) > 20
+                && coord.manhattan_distance(ruins_coord) > 20
+                && coord.manhattan_distance(flower_patch_coord) > 20
+                && f > 0.65
+            {
+                Some(coord)
+            } else {
+                None
+            }
+        })
+        .choose(rng)
+        .ok_or("no tea patch coord")?;
+    let tea_patch_radius = 5;
+    let mut tea_candidates = Vec::new();
+    for offset in Size::new(tea_patch_radius * 2, tea_patch_radius * 2).coord_iter_row_major() {
+        let rel_coord = offset - Coord::new(tea_patch_radius as i32, tea_patch_radius as i32);
+        if rel_coord.magnitude2() < (tea_patch_radius * tea_patch_radius) {
+            let abs_coord = rel_coord + tea_patch_coord;
+            let layers = world.spatial_table.layers_at_checked(abs_coord);
+            if layers.item.is_none() && layers.feature.is_none() {
+                tea_candidates.push(abs_coord);
+            }
+        }
+    }
+    let num_tea = 12;
+    if tea_candidates.len() < num_tea {
+        return Err("not enough tea candidates");
+    }
+    for &coord in tea_candidates.choose_multiple(rng, num_tea) {
+        world.spawn_tea(coord);
+        *no_trees.get_checked_mut(coord) = true;
     }
     let close_to_edge = |padding: i32, coord: Coord| {
         coord.x < padding

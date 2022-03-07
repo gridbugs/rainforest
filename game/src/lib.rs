@@ -91,6 +91,10 @@ impl Game {
         self.world.is_floor_at_coord(coord)
     }
 
+    pub fn contains_wall(&self, coord: Coord) -> bool {
+        self.world.is_wall_at_coord(coord)
+    }
+
     pub fn player_coord(&self) -> Coord {
         self.world
             .spatial_table

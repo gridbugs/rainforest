@@ -73,6 +73,24 @@ impl World {
         }
     }
 
+    pub fn is_wall_at_coord(&self, coord: Coord) -> bool {
+        if let Some(spatial_cell) = self.spatial_table.layers_at(coord) {
+            if let Some(entity) = spatial_cell.feature {
+                if let Some(tile) = self.components.tile.get(entity) {
+                    match tile {
+                        Tile::Wall
+                        | Tile::RuinsWall
+                        | Tile::Window(_)
+                        | Tile::DoorClosed(_)
+                        | Tile::DoorOpen(_) => return true,
+                        _ => (),
+                    }
+                }
+            }
+        }
+        false
+    }
+
     pub fn should_hide_rain(&self, coord: Coord) -> bool {
         if let Some(spatial_cell) = self.spatial_table.layers_at(coord) {
             if let Some(entity) = spatial_cell.floor {

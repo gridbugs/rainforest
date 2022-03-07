@@ -37,8 +37,8 @@ fn main() {
     } = Args::parser().with_help_default().parse_env_or_exit();
     let context = Context::new(Config {
         font_bytes: FontBytes {
-            normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin-with-quadrant-blocks.ttf").to_vec(),
-            bold: include_bytes!("./fonts/PxPlus_IBM_CGA-with-quadrant-blocks.ttf").to_vec(),
+            normal: include_bytes!("./fonts/PxPlus_IBM_CGAthin-custom.ttf").to_vec(),
+            bold: include_bytes!("./fonts/PxPlus_IBM_CGA-custom.ttf").to_vec(),
         },
         title: "Rain Forest".to_string(),
         window_dimensions_px: Dimensions {

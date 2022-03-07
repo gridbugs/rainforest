@@ -1,10 +1,30 @@
 use grid_2d::{Coord, Grid, Size};
 use rand::{
     distributions::{uniform::Uniform, Distribution},
+    seq::SliceRandom,
     Rng,
 };
 use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct TeaField {
+    grid: Grid<u16>,
+}
+
+impl TeaField {
+    pub fn new<R: Rng>(size: Size, rng: &mut R) -> Self {
+        let candidates = (0..=512u16)
+            .filter(|u| u.count_ones() > 4 && u.count_ones() < 7)
+            .collect::<Vec<_>>();
+        let grid = Grid::new_fn(size, |_| *candidates.choose(rng).unwrap());
+        Self { grid }
+    }
+
+    pub fn get(&self, coord: Coord) -> Option<u16> {
+        self.grid.get(coord).cloned()
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct GroundField {

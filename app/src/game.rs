@@ -1,5 +1,5 @@
 use crate::{
-    fields::{GroundField, LogField},
+    fields::{GroundField, LogField, TeaField},
     mist::Mist,
     tile_3x3,
 };
@@ -47,6 +47,7 @@ pub fn render_game_with_visibility(
     size: Size,
     ground_field: &GroundField,
     log_field: &LogField,
+    tea_field: &TeaField,
     mist: &Mist,
     ctx: Ctx,
     fb: &mut FrameBuffer,
@@ -70,6 +71,7 @@ pub fn render_game_with_visibility(
                         game,
                         ground_field,
                         log_field,
+                        tea_field,
                         ctx_tint!(
                             ctx,
                             LightBlend {
@@ -87,6 +89,7 @@ pub fn render_game_with_visibility(
                         visibility_cell,
                         game,
                         log_field,
+                        tea_field,
                         ctx_tint!(ctx, Remembered { mist_colour }),
                         fb,
                     );

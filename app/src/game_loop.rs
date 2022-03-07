@@ -2,7 +2,7 @@ use crate::{
     colour,
     controls::{AppInput, Controls},
     examine,
-    fields::{GroundField, LogField},
+    fields::{GroundField, LogField, TeaField},
     mist::Mist,
     rain::{Rain, RainDirection},
     text, AppStorage, InitialRngSeed,
@@ -65,6 +65,7 @@ pub struct GameInstanceStorable {
     running_game: RunningGame,
     ground_field: GroundField,
     log_field: LogField,
+    tea_field: TeaField,
     rain: Rain,
     mist: Mist,
 }
@@ -75,6 +76,7 @@ impl GameInstanceStorable {
             running_game,
             ground_field,
             log_field,
+            tea_field,
             rain,
             mist,
         } = self;
@@ -84,6 +86,7 @@ impl GameInstanceStorable {
                 game,
                 ground_field,
                 log_field,
+                tea_field,
                 rain,
                 mist,
             },
@@ -96,6 +99,7 @@ struct GameInstance {
     game: Game,
     ground_field: GroundField,
     log_field: LogField,
+    tea_field: TeaField,
     rain: Rain,
     mist: Mist,
 }
@@ -105,6 +109,7 @@ impl GameInstance {
         let (game, running) = witness::new_game(config, rng);
         let ground_field = GroundField::new(game.world_size(), rng);
         let log_field = LogField::new(game.world_size(), rng);
+        let tea_field = TeaField::new(game.world_size(), rng);
         let rain = Rain::new(&game, 10000, RainDirection::Diagonal, rng);
         let mist = Mist::new(rng);
         (
@@ -112,6 +117,7 @@ impl GameInstance {
                 game,
                 ground_field,
                 log_field,
+                tea_field,
                 rain,
                 mist,
             },
@@ -124,6 +130,7 @@ impl GameInstance {
             game,
             ground_field,
             log_field,
+            tea_field,
             rain,
             mist,
         } = self;
@@ -132,6 +139,7 @@ impl GameInstance {
             running_game,
             ground_field,
             log_field,
+            tea_field,
             rain,
             mist,
         }
@@ -146,6 +154,7 @@ impl GameInstance {
             GAME_VIEW_SIZE,
             &self.ground_field,
             &self.log_field,
+            &self.tea_field,
             &self.mist,
             ctx,
             fb,

@@ -68,6 +68,10 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
         Tile::Grass | Tile::FlatGrass => TileLabel::Name("grass"),
         Tile::Rock => TileLabel::Name("a rock"),
         Tile::Flower => TileLabel::Name("a flower"),
+        Tile::Bed => TileLabel::Name("a bed"),
+        Tile::ChairLeftFacing | Tile::ChairRightFacing => TileLabel::Name("a chair"),
+        Tile::Teapot => TileLabel::Name("a teapot"),
+        Tile::Tea => TileLabel::Name("a tea plant"),
     };
     Some(label)
 }

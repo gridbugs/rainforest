@@ -1,6 +1,6 @@
 use crate::{
     colour,
-    fields::{GroundField, LogField},
+    fields::{GroundField, LogField, TeaField},
 };
 use chargrid::core::prelude::*;
 use grid_2d::coord_2d::{Axis, Coord, Size};
@@ -14,6 +14,7 @@ pub fn render_3x3_from_visibility(
     game: &Game,
     ground_field: &GroundField,
     log_field: &LogField,
+    tea_field: &TeaField,
     ctx: Ctx,
     fb: &mut FrameBuffer,
 ) {
@@ -21,12 +22,8 @@ pub fn render_3x3_from_visibility(
     let mut render_tile = |entity, tile, ctx| match tile {
         Tile::Wall => {
             let below = world_coord + Coord::new(0, 1);
-            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
-                if render_cell.tile_layers().feature.is_some() {
-                    wall_top(world_coord, log_field, ctx, fb);
-                } else {
-                    wall_front(world_coord, log_field, ctx, fb);
-                }
+            if game.contains_wall(below) {
+                wall_top(world_coord, log_field, ctx, fb);
             } else {
                 wall_front(world_coord, log_field, ctx, fb);
             }
@@ -55,12 +52,8 @@ pub fn render_3x3_from_visibility(
         }
         Tile::RuinsWall => {
             let below = world_coord + Coord::new(0, 1);
-            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
-                if render_cell.tile_layers().feature.is_some() {
-                    ruins_wall_top(ctx, fb);
-                } else {
-                    ruins_wall_front(ctx, fb);
-                }
+            if game.contains_wall(below) {
+                ruins_wall_top(ctx, fb);
             } else {
                 ruins_wall_front(ctx, fb);
             }
@@ -74,6 +67,11 @@ pub fn render_3x3_from_visibility(
         Tile::FlatGrass => flat_grass(ctx, fb),
         Tile::Rock => rock(ctx, fb),
         Tile::Flower => flower(ctx, fb),
+        Tile::Bed => bed(ctx, fb),
+        Tile::ChairLeftFacing => chair_left_facing(ctx, fb),
+        Tile::ChairRightFacing => chair_right_facing(ctx, fb),
+        Tile::Teapot => teapot(ctx, fb),
+        Tile::Tea => tea(tea_field.get(world_coord).unwrap(), ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -96,6 +94,7 @@ pub fn render_3x3_from_visibility_remembered(
     visibility_cell: &VisibilityCell,
     game: &Game,
     log_field: &LogField,
+    tea_field: &TeaField,
     ctx: Ctx,
     fb: &mut FrameBuffer,
 ) {
@@ -103,12 +102,8 @@ pub fn render_3x3_from_visibility_remembered(
     let mut render_tile = |tile, ctx| match tile {
         Tile::Wall => {
             let below = world_coord + Coord::new(0, 1);
-            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
-                if render_cell.tile_layers().feature.is_some() {
-                    wall_top(world_coord, log_field, ctx, fb);
-                } else {
-                    wall_front(world_coord, log_field, ctx, fb);
-                }
+            if game.contains_wall(below) {
+                wall_top(world_coord, log_field, ctx, fb);
             } else {
                 wall_front(world_coord, log_field, ctx, fb);
             }
@@ -130,12 +125,8 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::Water => water(Rgb24::new_grey(128), ctx, fb),
         Tile::RuinsWall => {
             let below = world_coord + Coord::new(0, 1);
-            if let Some(render_cell) = game.visibility_grid().get_cell(below) {
-                if render_cell.tile_layers().feature.is_some() {
-                    ruins_wall_top(ctx, fb);
-                } else {
-                    ruins_wall_front(ctx, fb);
-                }
+            if game.contains_wall(below) {
+                ruins_wall_top(ctx, fb);
             } else {
                 ruins_wall_front(ctx, fb);
             }
@@ -149,6 +140,11 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::FlatGrass => flat_grass(ctx, fb),
         Tile::Rock => rock(ctx, fb),
         Tile::Flower => flower(ctx, fb),
+        Tile::Bed => bed(ctx, fb),
+        Tile::ChairLeftFacing => chair_left_facing(ctx, fb),
+        Tile::ChairRightFacing => chair_right_facing(ctx, fb),
+        Tile::Teapot => teapot(ctx, fb),
+        Tile::Tea => tea(tea_field.get(world_coord).unwrap(), ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -1314,4 +1310,166 @@ fn flower(ctx: Ctx, fb: &mut FrameBuffer) {
             .with_bold(true)
             .with_foreground(colour::FLOWER),
     );
+}
+
+fn bed(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::BED_MATRESS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::BED_MATRESS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▘')
+            .with_foreground(colour::FLOOR_BACKGROUND)
+            .with_background(colour::BED_HEAD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('║')
+            .with_bold(true)
+            .with_foreground(colour::BED_LEGS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('║')
+            .with_bold(true)
+            .with_foreground(colour::BED_LEGS),
+    );
+}
+
+fn chair_left_facing(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::CHAIR),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::CHAIR),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::CHAIR),
+    );
+}
+
+fn chair_right_facing(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::CHAIR),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::CHAIR),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::CHAIR),
+    );
+}
+
+fn teapot(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('┐')
+            .with_bold(true)
+            .with_foreground(colour::TEAPOT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('┘')
+            .with_bold(true)
+            .with_foreground(colour::TEAPOT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::TEAPOT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::TEAPOT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('╲')
+            .with_bold(true)
+            .with_foreground(colour::TEAPOT),
+    );
+}
+
+fn tea(pattern: u16, ctx: Ctx, fb: &mut FrameBuffer) {
+    for (i, coord) in Size::new_u16(3, 3).coord_iter_row_major().enumerate() {
+        if pattern & (1 << i) != 0 {
+            fb.set_cell_relative_to_ctx(
+                ctx,
+                coord,
+                0,
+                RenderCell::default()
+                    .with_character('♣')
+                    .with_bold(true)
+                    .with_foreground(colour::TEA),
+            );
+        }
+    }
 }
