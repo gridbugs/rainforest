@@ -72,6 +72,11 @@ pub fn render_3x3_from_visibility(
         Tile::ChairRightFacing => chair_right_facing(ctx, fb),
         Tile::Teapot => teapot(ctx, fb),
         Tile::Tea => tea(tea_field.get(world_coord).unwrap(), ctx, fb),
+        Tile::Gumboots => gumboots(ctx, fb),
+        Tile::Umbrella => umbrella(ctx, fb),
+        Tile::Shovel => shovel(ctx, fb),
+        Tile::Map => map(ctx, fb),
+        Tile::WeatherReport => weather_report(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -145,6 +150,11 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::ChairRightFacing => chair_right_facing(ctx, fb),
         Tile::Teapot => teapot(ctx, fb),
         Tile::Tea => tea(tea_field.get(world_coord).unwrap(), ctx, fb),
+        Tile::Gumboots => gumboots(ctx, fb),
+        Tile::Umbrella => umbrella(ctx, fb),
+        Tile::Shovel => shovel(ctx, fb),
+        Tile::Map => map(ctx, fb),
+        Tile::WeatherReport => weather_report(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -1472,4 +1482,263 @@ fn tea(pattern: u16, ctx: Ctx, fb: &mut FrameBuffer) {
             );
         }
     }
+}
+
+fn gumboots(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(Rgba32::new_grey(0))
+            .with_background(colour::GUMBOOTS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(Rgba32::new_grey(0))
+            .with_background(colour::GUMBOOTS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('▗')
+            .with_foreground(colour::GUMBOOTS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('▖')
+            .with_foreground(colour::GUMBOOTS),
+    );
+}
+
+fn umbrella(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::UMBRELLA),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▗')
+            .with_foreground(colour::UMBRELLA),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▖')
+            .with_foreground(colour::UMBRELLA),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('⌡')
+            .with_bold(true)
+            .with_foreground(colour::UMBRELLA_HANDLE),
+    );
+}
+
+fn shovel(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('█')
+            .with_foreground(colour::SHOVEL_BLADE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(colour::SHOVEL_HANDLE),
+    );
+
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(colour::SHOVEL_HANDLE),
+    );
+}
+
+fn map(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('M')
+            .with_bold(true)
+            .with_foreground(colour::MAP_FOREGROUND)
+            .with_background(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('▀')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 0),
+        0,
+        RenderCell::default()
+            .with_character('▗')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 0),
+        0,
+        RenderCell::default()
+            .with_character('▖')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('▝')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('▘')
+            .with_foreground(colour::MAP_BACKGROUND),
+    );
+}
+
+fn weather_report(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('W')
+            .with_bold(true)
+            .with_foreground(colour::WEATHER_REPORT_FOREGROUND)
+            .with_background(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('▀')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 0),
+        0,
+        RenderCell::default()
+            .with_character('▗')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 0),
+        0,
+        RenderCell::default()
+            .with_character('▖')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('▝')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('▘')
+            .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
 }

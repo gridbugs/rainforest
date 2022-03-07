@@ -39,6 +39,26 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
                 '.' => {
                     world.spawn_ground(coord);
                 }
+                '1' => {
+                    world.spawn_floor(coord);
+                    world.spawn_gumboots(coord);
+                }
+                '2' => {
+                    world.spawn_floor(coord);
+                    world.spawn_umbrella(coord);
+                }
+                '3' => {
+                    world.spawn_floor(coord);
+                    world.spawn_shovel(coord);
+                }
+                '4' => {
+                    world.spawn_floor(coord);
+                    world.spawn_map(coord);
+                }
+                '5' => {
+                    world.spawn_floor(coord);
+                    world.spawn_weather_report(coord);
+                }
                 '&' => {
                     world.spawn_ground(coord);
                     world.spawn_tree(coord, rng);

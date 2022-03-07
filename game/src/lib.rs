@@ -28,7 +28,6 @@ use world::World;
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub omniscient: bool,
-    pub demo: bool,
     pub debug: bool,
 }
 

@@ -146,7 +146,6 @@ pub fn app(
 ) -> App {
     let config = GameConfig {
         omniscient,
-        demo: false,
         debug: false,
     };
     let (game_loop_data, initial_state) =

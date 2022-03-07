@@ -52,6 +52,11 @@ pub enum Tile {
     ChairRightFacing,
     Teapot,
     Tea,
+    Gumboots,
+    Umbrella,
+    Shovel,
+    Map,
+    WeatherReport,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

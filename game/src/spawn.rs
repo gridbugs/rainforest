@@ -433,4 +433,79 @@ impl World {
         self.components.tile.insert(entity, Tile::Tea);
         entity
     }
+
+    pub fn spawn_gumboots(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Gumboots);
+        entity
+    }
+
+    pub fn spawn_umbrella(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Umbrella);
+        entity
+    }
+
+    pub fn spawn_shovel(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Shovel);
+        entity
+    }
+
+    pub fn spawn_map(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Map);
+        entity
+    }
+
+    pub fn spawn_weather_report(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::WeatherReport);
+        entity
+    }
 }
