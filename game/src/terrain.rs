@@ -95,7 +95,7 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
     Terrain { world, player }
 }
 
-const SIZE: Size = Size::new_u16(100, 100);
+const SIZE: Size = Size::new_u16(120, 120);
 
 fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain, &str> {
     let size = SIZE;
@@ -106,6 +106,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     let tree_chance_scale = 0.3;
     let light_colour = Rgb24::new(255, 185, 100);
     let mut world = World::new(size);
+    let mut no_trees = Grid::new_copy(size, false);
     let mut player_data = Some(player_data);
     let topography_grid = Grid::new_fn(size, |coord| {
         topography.noise01((
@@ -141,6 +142,13 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         cabin_coord + door_direction.coord() * cabin_size.get(door_direction.axis()) as i32 / 2;
     world.spawn_door(door_coord, door_direction.axis());
     world.spawn_light(door_coord - door_direction.coord(), light_colour);
+    let lamp_coord =
+        door_coord + (door_direction.coord() * 5) + door_direction.left90().coord() * 1;
+    world.spawn_lamp(lamp_coord);
+    let bulletin_board_coord =
+        door_coord + (door_direction.coord() * 3) + door_direction.right90().coord();
+    world.spawn_bulletin_board(bulletin_board_coord);
+    *no_trees.get_checked_mut(bulletin_board_coord + Coord::new(0, 1)) = true;
     for coord in [
         door_direction.left90().coord(),
         door_direction.right90().coord(),
@@ -232,6 +240,29 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             }
         }
     }
+    let num_extra_lamps = 3;
+    let mut lamp_coords = vec![lamp_coord];
+    for _ in 0..num_extra_lamps {
+        let coord = size
+            .coord_iter_row_major()
+            .filter(|coord| {
+                coord.x > padding
+                    && coord.y > padding
+                    && coord.x < size.x() as i32 - padding
+                    && coord.y < size.y() as i32 - padding
+                    && coord.manhattan_distance(cabin_coord) > 30
+                    && coord.manhattan_distance(ruins_coord) > 30
+                    && lamp_coords
+                        .iter()
+                        .all(|&c| coord.manhattan_distance(c) > 40)
+            })
+            .choose(rng)
+            .ok_or("no lamp coord")?;
+        lamp_coords.push(coord);
+        world.spawn_lamp(coord);
+        *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 1)) = true;
+        *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 2)) = true;
+    }
     for coord in size.coord_iter_row_major() {
         if world.spatial_table.layers_at_checked(coord).floor.is_some() {
             continue;
@@ -240,11 +271,17 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             world.spawn_ground(coord);
             continue;
         }
-        if rng.gen::<f64>()
-            < tree_chance.noise01((
-                coord.x as f64 * tree_chance_spread,
-                coord.y as f64 * tree_chance_spread,
-            )) * tree_chance_scale
+        if !no_trees.get_checked(coord)
+            && world
+                .spatial_table
+                .layers_at_checked(coord)
+                .feature
+                .is_none()
+            && rng.gen::<f64>()
+                < tree_chance.noise01((
+                    coord.x as f64 * tree_chance_spread,
+                    coord.y as f64 * tree_chance_spread,
+                )) * tree_chance_scale
         {
             world.spawn_tree(coord, rng);
         }
@@ -255,8 +292,9 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
 
 pub fn generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Terrain {
     loop {
-        if let Ok(terrain) = try_generate(player_data.clone(), rng) {
-            return terrain;
+        match try_generate(player_data.clone(), rng) {
+            Ok(terrain) => break terrain,
+            Err(message) => log::warn!("{}", message),
         }
     }
 }

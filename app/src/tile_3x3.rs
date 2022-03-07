@@ -67,6 +67,8 @@ pub fn render_3x3_from_visibility(
         }
         Tile::RuinsFloor => ruins_floor(ctx, fb),
         Tile::Altar => altar(ctx, fb),
+        Tile::BulletinBoard => bulletin_board(ctx, fb),
+        Tile::Lamp => lamp(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -135,6 +137,8 @@ pub fn render_3x3_from_visibility_remembered(
         }
         Tile::RuinsFloor => ruins_floor(ctx, fb),
         Tile::Altar => altar(ctx, fb),
+        Tile::BulletinBoard => bulletin_board(ctx, fb),
+        Tile::Lamp => lamp(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -1094,5 +1098,97 @@ pub fn altar(ctx: Ctx, fb: &mut FrameBuffer) {
             .with_character('╣')
             .with_foreground(colour::ALTAR_FOREGROUND)
             .with_background(colour::RUINS_WALL_FRONT_BACKGROUND),
+    );
+}
+
+fn bulletin_board(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 0),
+        0,
+        RenderCell::default()
+            .with_character('▗')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 0),
+        0,
+        RenderCell::default()
+            .with_character('▖')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('≡')
+            .with_background(colour::WOOD)
+            .with_foreground(colour::BULLETIN_TEXT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::WOOD),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(colour::WOOD),
+    );
+}
+
+fn lamp(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('▼')
+            .with_bold(true)
+            .with_foreground(colour::LAMP_LIGHT)
+            .with_background(colour::LAMP_BASE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('┼')
+            .with_bold(true)
+            .with_foreground(colour::LAMP_BASE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(colour::LAMP_BASE),
     );
 }

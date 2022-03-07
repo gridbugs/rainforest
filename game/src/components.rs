@@ -16,6 +16,7 @@ declare_entity_module! {
         light: Light,
         colour_hint: Rgb24,
         realtime: (),
+        bulletin_board: (),
     }
 }
 pub use components::Components;
@@ -37,6 +38,8 @@ pub enum Tile {
     RuinsWall,
     RuinsFloor,
     Altar,
+    BulletinBoard,
+    Lamp,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

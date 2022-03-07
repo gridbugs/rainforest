@@ -56,12 +56,14 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
         Tile::Player => TileLabel::Literal("It's you!"),
         Tile::DoorClosed(_) | Tile::DoorOpen(_) => TileLabel::Name("a door"),
         Tile::Wall | Tile::RuinsWall => TileLabel::Name("a wall"),
+        Tile::BulletinBoard => TileLabel::Name("a bulletin board"),
         Tile::Floor | Tile::RuinsFloor => TileLabel::Name("the floor"),
         Tile::Ground => TileLabel::Name("the ground"),
         Tile::Window(_) => TileLabel::Name("a window"),
         Tile::Tree0 | Tile::Tree1 | Tile::Tree2 => TileLabel::Name("a tree"),
         Tile::Water => TileLabel::Name("water"),
         Tile::Altar => TileLabel::Name("an altar"),
+        Tile::Lamp => TileLabel::Name("a lamp"),
     };
     Some(label)
 }

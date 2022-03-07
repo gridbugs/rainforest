@@ -215,4 +215,48 @@ impl World {
         self.components.solid.insert(entity, ());
         entity
     }
+
+    pub fn spawn_bulletin_board(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::BulletinBoard);
+        self.components.solid.insert(entity, ());
+        self.components.bulletin_board.insert(entity, ());
+        entity
+    }
+
+    pub fn spawn_lamp(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Lamp);
+        self.components.solid.insert(entity, ());
+        self.components.light.insert(
+            entity,
+            Light {
+                colour: Rgb24::new(255, 255, 185),
+                vision_distance: Circle::new_squared(100),
+                diminish: Rational {
+                    numerator: 1,
+                    denominator: 4,
+                },
+            },
+        );
+        entity
+    }
 }
