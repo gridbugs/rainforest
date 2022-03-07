@@ -6,7 +6,7 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 
-const MAX_NUM_DROPS: usize = 10000;
+const MAX_NUM_DROPS: usize = 20000;
 const SPASH_DURATION: u32 = 0;
 const DROP_INTERVAL: u32 = 1;
 
@@ -100,8 +100,10 @@ impl Rain {
                     } else {
                         drop.state = RainDropState::Falling;
                         drop.remaining = self.rng.gen_range(0..self.size.height());
-                        drop.coord =
-                            Coord::new(self.rng.gen_range(0..(self.size.width() as i32 * 2)), 0);
+                        drop.coord = Coord::new(
+                            self.rng.gen_range(0..(self.size.width() as i32 * 2)),
+                            self.rng.gen_range(0..(self.size.height() as i32)),
+                        );
                     }
                 }
             }

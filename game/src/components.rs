@@ -17,6 +17,8 @@ declare_entity_module! {
         colour_hint: Rgb24,
         realtime: (),
         bulletin_board: (),
+        lake: (),
+        grass: (),
     }
 }
 pub use components::Components;
@@ -40,6 +42,11 @@ pub enum Tile {
     Altar,
     BulletinBoard,
     Lamp,
+    PierFloor,
+    Grass,
+    FlatGrass,
+    Rock,
+    Flower,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,7 +63,7 @@ pub fn make_player() -> EntityData {
         tile: Some(Tile::Player),
         player: Some(Player {}),
         light: Some(Light {
-            colour: Rgb24::new_grey(100),
+            colour: Rgb24::new_grey(185),
             vision_distance: Circle::new_squared(200),
             diminish: Rational {
                 numerator: 1,

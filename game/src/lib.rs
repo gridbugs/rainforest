@@ -143,6 +143,14 @@ impl Game {
             .expect("can't get coord of player");
         let destination = player_coord + direction.coord();
         if let Some(layers) = self.world.spatial_table.layers_at(destination) {
+            if let Some(floor) = layers.floor {
+                if self.world.components.lake.contains(floor) {
+                    return (
+                        running.into_witness(),
+                        ActionError::err_msg("Refusing to walk into the lake"),
+                    );
+                }
+            }
             if let Some(feature) = layers.feature {
                 if self.world.components.solid.contains(feature) {
                     if self.world.components.door_state.contains(feature) {
@@ -165,6 +173,9 @@ impl Game {
                         }
                         return (running.into_witness(), ActionError::err_cant_walk_there());
                     }
+                }
+                if self.world.components.grass.contains(feature) {
+                    self.world.flatten_grass(feature);
                 }
             }
             let _ = self

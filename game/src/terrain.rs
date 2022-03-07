@@ -7,7 +7,10 @@ use direction::CardinalDirection;
 use entity_table::Entity;
 use grid_2d::{Coord, Grid, Size};
 use perlin2::Perlin2;
-use rand::{seq::IteratorRandom, Rng};
+use rand::{
+    seq::{IteratorRandom, SliceRandom},
+    Rng,
+};
 use rgb_int::Rgb24;
 
 pub struct Terrain {
@@ -114,7 +117,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             coord.y as f64 * topography_spread,
         ))
     });
-    let padding = 30;
+    let padding = 35;
     let cabin_coord = topography_grid
         .enumerate()
         .filter_map(|(coord, &f)| {
@@ -149,6 +152,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         door_coord + (door_direction.coord() * 3) + door_direction.right90().coord();
     world.spawn_bulletin_board(bulletin_board_coord);
     *no_trees.get_checked_mut(bulletin_board_coord + Coord::new(0, 1)) = true;
+    *no_trees.get_checked_mut(bulletin_board_coord + Coord::new(0, 2)) = true;
     for coord in [
         door_direction.left90().coord(),
         door_direction.right90().coord(),
@@ -254,7 +258,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     && coord.manhattan_distance(ruins_coord) > 30
                     && lamp_coords
                         .iter()
-                        .all(|&c| coord.manhattan_distance(c) > 40)
+                        .all(|&c| coord.manhattan_distance(c) > 30)
             })
             .choose(rng)
             .ok_or("no lamp coord")?;
@@ -263,6 +267,120 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 1)) = true;
         *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 2)) = true;
     }
+    let lake_direction = rng.gen::<CardinalDirection>();
+    let lake_mid = (size.to_coord().unwrap() / 2)
+        + (lake_direction.coord() * (((size.get(lake_direction.axis()) as i32) / 2) - 24));
+    let pier_offset = rng.gen_range(-40..40) + lake_mid.get(lake_direction.axis().other());
+    let lake_edge = lake_mid.set(lake_direction.axis().other(), 0);
+    let mut lake_offset = 0;
+    let lake_offset_step_pool = [0, 0, 0, 0, 0, 0, 0, 1, -1];
+    for i in 0..(size.get(lake_direction.axis().other()) as i32) {
+        lake_offset += lake_offset_step_pool.choose(rng).unwrap();
+        let mut j = lake_edge.get(lake_direction.axis()) + lake_offset;
+        if i == pier_offset {
+            let pier_coord =
+                Coord::new_axis(j - lake_direction.sign() * 2, i, lake_direction.axis());
+            *no_trees.get_checked_mut(pier_coord - Coord::new_axis(1, 0, lake_direction.axis())) =
+                true;
+            let pier_length = 8;
+            for i in 0..pier_length {
+                let coord = pier_coord
+                    + Coord::new_axis(i * lake_direction.sign(), 0, lake_direction.axis());
+                world.spawn_pier_floor(coord);
+                *no_trees.get_checked_mut(coord) = true;
+            }
+            let pier_lamp_coord = pier_coord
+                + (lake_direction.coord() * (pier_length - 1))
+                + if rng.gen() {
+                    lake_direction.left90().coord()
+                } else {
+                    lake_direction.right90().coord()
+                };
+            if let Some(entity) = world.spatial_table.layers_at_checked(pier_lamp_coord).floor {
+                world.spatial_table.remove(entity);
+                world.components.remove_entity(entity);
+            }
+            if let Some(entity) = world
+                .spatial_table
+                .layers_at_checked(pier_lamp_coord)
+                .feature
+            {
+                world.spatial_table.remove(entity);
+                world.components.remove_entity(entity);
+            }
+
+            world.spawn_pier_floor(pier_lamp_coord);
+            world.spawn_lamp(pier_lamp_coord);
+        }
+        let mut count = 0;
+        loop {
+            let coord = Coord::new_axis(j, i, lake_direction.axis());
+            if !coord.is_valid(size) {
+                break;
+            }
+            if world.spatial_table.layers_at_checked(coord).floor.is_none() {
+                if coord == player_location.coord {
+                    return Err("player spawned in lake");
+                }
+                world.spawn_lake_water(coord, rng);
+                let noise = tree_chance.noise01((
+                    coord.x as f64 * tree_chance_spread,
+                    coord.y as f64 * tree_chance_spread,
+                ));
+                if rng.gen::<f64>() < (noise - (count as f64 / 10.)) {
+                    world.spawn_grass(coord);
+                }
+            }
+            *no_trees.get_checked_mut(coord) = true;
+            j += lake_direction.sign();
+            count += 1;
+        }
+    }
+    let flower_patch_coord = topography_grid
+        .enumerate()
+        .filter_map(|(coord, &f)| {
+            if coord.x > padding
+                && coord.y > padding
+                && coord.x < size.x() as i32 - padding
+                && coord.y < size.y() as i32 - padding
+                && coord.manhattan_distance(cabin_coord) > 30
+                && coord.manhattan_distance(ruins_coord) > 30
+                && f > 0.65
+            {
+                Some(coord)
+            } else {
+                None
+            }
+        })
+        .choose(rng)
+        .ok_or("no flower patch coord")?;
+    let flower_patch_radius = 5;
+    let mut flower_candidates = Vec::new();
+    for offset in Size::new(flower_patch_radius * 2, flower_patch_radius * 2).coord_iter_row_major()
+    {
+        let rel_coord = offset - Coord::new(flower_patch_radius as i32, flower_patch_radius as i32);
+        if rel_coord.magnitude2() < (flower_patch_radius * flower_patch_radius) {
+            let abs_coord = rel_coord + flower_patch_coord;
+            let layers = world.spatial_table.layers_at_checked(abs_coord);
+            if layers.item.is_none() && layers.feature.is_none() {
+                flower_candidates.push(abs_coord);
+            }
+        }
+    }
+    let num_flowers = 12;
+    if flower_candidates.len() < num_flowers {
+        return Err("not enough flower candidates");
+    }
+    for &coord in flower_candidates.choose_multiple(rng, num_flowers) {
+        world.spawn_flower(coord);
+    }
+    let close_to_edge = |padding: i32, coord: Coord| {
+        coord.x < padding
+            || coord.y < padding
+            || coord.x > size.width() as i32 - padding
+            || coord.y > size.height() as i32 - padding
+    };
+    let mut rock_candidates = Vec::new();
     for coord in size.coord_iter_row_major() {
         if world.spatial_table.layers_at_checked(coord).floor.is_some() {
             continue;
@@ -277,15 +395,40 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 .layers_at_checked(coord)
                 .feature
                 .is_none()
-            && rng.gen::<f64>()
-                < tree_chance.noise01((
+        {
+            if close_to_edge(3, coord)
+                || (close_to_edge(10, coord) && rng.gen::<f64>() < 0.5)
+                || rng.gen::<f64>()
+                    < (tree_chance.noise01((
+                        coord.x as f64 * tree_chance_spread,
+                        coord.y as f64 * tree_chance_spread,
+                    )) - 0.2)
+                        * tree_chance_scale
+            {
+                world.spawn_tree(coord, rng);
+            } else {
+                let noise = tree_chance.noise01((
                     coord.x as f64 * tree_chance_spread,
                     coord.y as f64 * tree_chance_spread,
-                )) * tree_chance_scale
-        {
-            world.spawn_tree(coord, rng);
+                ));
+                if (noise < 0.4 && rng.gen::<f64>() * 0.8 > noise) || rng.gen::<f64>() < 0.1 {
+                    world.spawn_grass(coord);
+                } else {
+                    let layers = world.spatial_table.layers_at_checked(coord);
+                    if layers.item.is_none() && layers.feature.is_none() {
+                        rock_candidates.push(coord);
+                    }
+                }
+            }
         }
         world.spawn_ground(coord);
+    }
+    let num_rocks = 60;
+    if rock_candidates.len() < num_rocks {
+        return Err("not enough rock rock candidate");
+    }
+    for &coord in rock_candidates.choose_multiple(rng, num_rocks) {
+        world.spawn_rock(coord);
     }
     Ok(Terrain { world, player })
 }

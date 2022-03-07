@@ -105,7 +105,7 @@ impl GameInstance {
         let (game, running) = witness::new_game(config, rng);
         let ground_field = GroundField::new(game.world_size(), rng);
         let log_field = LogField::new(game.world_size(), rng);
-        let rain = Rain::new(&game, 6000, RainDirection::Diagonal, rng);
+        let rain = Rain::new(&game, 10000, RainDirection::Diagonal, rng);
         let mist = Mist::new(rng);
         (
             GameInstance {

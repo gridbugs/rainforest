@@ -259,4 +259,103 @@ impl World {
         );
         entity
     }
+
+    pub fn spawn_pier_floor(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Floor),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::PierFloor);
+        entity
+    }
+
+    pub fn spawn_lake_water<R: Rng>(&mut self, coord: Coord, rng: &mut R) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Floor),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Water);
+        let colour_range = UniformInclusiveRange {
+            low: Rgb24::new(10, 40, 100),
+            high: Rgb24::new(20, 90, 150),
+        };
+        self.realtime_components.flicker.insert(entity, {
+            use flicker::spec::*;
+            Flicker {
+                colour_hint: Some(colour_range),
+                light_colour: None,
+                tile: None,
+                until_next_event: UniformInclusiveRange {
+                    low: Duration::from_millis(200),
+                    high: Duration::from_millis(1000),
+                },
+            }
+            .build(rng)
+        });
+        self.components
+            .colour_hint
+            .insert(entity, colour_range.choose(rng));
+        self.components.realtime.insert(entity, ());
+        self.components.lake.insert(entity, ());
+        entity
+    }
+
+    pub fn spawn_grass(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Feature),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Grass);
+        self.components.opacity.insert(entity, 100);
+        self.components.grass.insert(entity, ());
+        entity
+    }
+
+    pub fn spawn_rock(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Rock);
+        entity
+    }
+
+    pub fn spawn_flower(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Flower);
+        entity
+    }
 }

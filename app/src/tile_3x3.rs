@@ -69,6 +69,11 @@ pub fn render_3x3_from_visibility(
         Tile::Altar => altar(ctx, fb),
         Tile::BulletinBoard => bulletin_board(ctx, fb),
         Tile::Lamp => lamp(ctx, fb),
+        Tile::PierFloor => pier_floor(ctx, fb),
+        Tile::Grass => grass(ctx, fb),
+        Tile::FlatGrass => flat_grass(ctx, fb),
+        Tile::Rock => rock(ctx, fb),
+        Tile::Flower => flower(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -139,6 +144,11 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::Altar => altar(ctx, fb),
         Tile::BulletinBoard => bulletin_board(ctx, fb),
         Tile::Lamp => lamp(ctx, fb),
+        Tile::PierFloor => pier_floor(ctx, fb),
+        Tile::Grass => grass(ctx, fb),
+        Tile::FlatGrass => flat_grass(ctx, fb),
+        Tile::Rock => rock(ctx, fb),
+        Tile::Flower => flower(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -750,12 +760,13 @@ pub fn wall_front(world_coord: Coord, log_field: &LogField, ctx: Ctx, fb: &mut F
     }
 }
 
+const TREE_DEPTH: i8 = 5;
 pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     let ctx = ctx.add_y(-4).add_depth(2);
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 1 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -763,7 +774,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -771,7 +782,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -779,7 +790,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -787,7 +798,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -795,7 +806,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 0 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -804,7 +815,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 0, y: 1 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -813,7 +824,7 @@ pub fn tree0(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 2, y: 3 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -826,7 +837,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 1 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -834,7 +845,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -842,7 +853,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -850,7 +861,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -858,7 +869,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -866,7 +877,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 0 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -875,7 +886,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 0, y: 3 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -884,7 +895,7 @@ pub fn tree1(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 2, y: 2 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -897,7 +908,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 1 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -905,7 +916,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 2 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -913,7 +924,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 3 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -921,7 +932,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 4 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -929,7 +940,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 5 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character(' ')
             .with_background(colour::WOOD),
@@ -937,7 +948,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 1, y: 0 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -946,7 +957,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 0, y: 2 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -955,7 +966,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 2, y: 1 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -964,7 +975,7 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord { x: 2, y: 4 },
-        0,
+        TREE_DEPTH,
         RenderCell::default()
             .with_character('▄')
             .with_foreground(colour::WOOD)
@@ -980,8 +991,8 @@ pub fn water(colour_hint: Rgb24, ctx: Ctx, fb: &mut FrameBuffer) {
             0,
             RenderCell::default()
                 .with_character('~')
-                .with_foreground(colour_hint.saturating_scalar_mul_div(1, 2).to_rgba32(255))
-                .with_background(colour_hint.to_rgba32(255)),
+                .with_foreground(colour_hint.saturating_scalar_mul_div(1, 1).to_rgba32(255))
+                .with_background(colour_hint.saturating_scalar_mul_div(1, 3).to_rgba32(255)),
         );
     }
 }
@@ -1190,5 +1201,117 @@ fn lamp(ctx: Ctx, fb: &mut FrameBuffer) {
             .with_character('│')
             .with_bold(true)
             .with_foreground(colour::LAMP_BASE),
+    );
+}
+
+fn pier_floor(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset,
+            0,
+            RenderCell::default()
+                .with_character(' ')
+                .with_background(colour::PIER_FLOOR_BACKGROUND),
+        );
+    }
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord { x: 1, y: 1 },
+        0,
+        RenderCell::default()
+            .with_character('▪')
+            .with_foreground(colour::PIER_FLOOR_FOREGROUND),
+    );
+}
+
+fn grass(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 2).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset + Coord::new(0, 1),
+            3,
+            RenderCell::default()
+                .with_character('║')
+                .with_bold(true)
+                .with_foreground(colour::GRASS),
+        );
+    }
+}
+
+fn flat_grass(ctx: Ctx, fb: &mut FrameBuffer) {
+    for offset in Size::new_u16(3, 1).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            offset + Coord::new(0, 2),
+            3,
+            RenderCell::default()
+                .with_character('║')
+                .with_foreground(colour::GRASS),
+        );
+    }
+}
+
+fn rock(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character(' ')
+            .with_background(colour::ROCK),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('▄')
+            .with_foreground(colour::ROCK),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('▀')
+            .with_foreground(colour::ROCK),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('▐')
+            .with_foreground(colour::ROCK),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('▌')
+            .with_foreground(colour::ROCK),
+    );
+}
+
+fn flower(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('├')
+            .with_bold(true)
+            .with_foreground(colour::GRASS),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('▼')
+            .with_bold(true)
+            .with_foreground(colour::FLOWER),
     );
 }

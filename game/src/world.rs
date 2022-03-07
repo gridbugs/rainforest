@@ -132,4 +132,9 @@ impl World {
         };
         self.components.tile.insert(door, Tile::DoorClosed(axis));
     }
+
+    pub fn flatten_grass(&mut self, grass: Entity) {
+        self.components.opacity.remove(grass);
+        self.components.tile.insert(grass, Tile::FlatGrass);
+    }
 }
