@@ -63,7 +63,7 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
         Tile::Tree0 | Tile::Tree1 | Tile::Tree2 => TileLabel::Name("a tree"),
         Tile::Water => TileLabel::Name("water"),
         Tile::Altar => TileLabel::Name("an altar"),
-        Tile::Lamp => TileLabel::Name("a lamp"),
+        Tile::Lamp | Tile::LampOff => TileLabel::Name("a lamp"),
         Tile::PierFloor => TileLabel::Name("a pier"),
         Tile::Grass | Tile::FlatGrass => TileLabel::Name("grass"),
         Tile::Rock => TileLabel::Name("a rock"),

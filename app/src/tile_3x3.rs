@@ -61,7 +61,8 @@ pub fn render_3x3_from_visibility(
         Tile::RuinsFloor => ruins_floor(ctx, fb),
         Tile::Altar => altar(ctx, fb),
         Tile::BulletinBoard => bulletin_board(ctx, fb),
-        Tile::Lamp => lamp(ctx, fb),
+        Tile::Lamp => lamp(true, ctx, fb),
+        Tile::LampOff => lamp(false, ctx, fb),
         Tile::PierFloor => pier_floor(ctx, fb),
         Tile::Grass => grass(ctx, fb),
         Tile::FlatGrass => flat_grass(ctx, fb),
@@ -139,7 +140,8 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::RuinsFloor => ruins_floor(ctx, fb),
         Tile::Altar => altar(ctx, fb),
         Tile::BulletinBoard => bulletin_board(ctx, fb),
-        Tile::Lamp => lamp(ctx, fb),
+        Tile::Lamp => lamp(true, ctx, fb),
+        Tile::LampOff => lamp(false, ctx, fb),
         Tile::PierFloor => pier_floor(ctx, fb),
         Tile::Grass => grass(ctx, fb),
         Tile::FlatGrass => flat_grass(ctx, fb),
@@ -1179,7 +1181,7 @@ fn bulletin_board(ctx: Ctx, fb: &mut FrameBuffer) {
     );
 }
 
-fn lamp(ctx: Ctx, fb: &mut FrameBuffer) {
+fn lamp(on: bool, ctx: Ctx, fb: &mut FrameBuffer) {
     fb.set_cell_relative_to_ctx(
         ctx,
         Coord::new(1, 0),
@@ -1187,7 +1189,11 @@ fn lamp(ctx: Ctx, fb: &mut FrameBuffer) {
         RenderCell::default()
             .with_character('▼')
             .with_bold(true)
-            .with_foreground(colour::LAMP_LIGHT)
+            .with_foreground(if on {
+                colour::LAMP_LIGHT
+            } else {
+                colour::LAMP_OFF
+            })
             .with_background(colour::LAMP_BASE),
     );
     fb.set_cell_relative_to_ctx(

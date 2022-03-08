@@ -155,4 +155,24 @@ impl World {
         self.components.opacity.remove(grass);
         self.components.tile.insert(grass, Tile::FlatGrass);
     }
+
+    pub fn turn_lamps_on(&mut self) {
+        for lamp in self.components.lamp.entities() {
+            self.components.light.insert(lamp, Self::LAMP_LIGHT);
+            self.components.tile.insert(lamp, Tile::Lamp);
+        }
+        for house_light in self.components.house_light.entities() {
+            self.components.light.insert(house_light, Self::HOUSE_LIGHT);
+        }
+    }
+
+    pub fn turn_lamps_off(&mut self) {
+        for lamp in self.components.lamp.entities() {
+            self.components.light.remove(lamp);
+            self.components.tile.insert(lamp, Tile::LampOff);
+        }
+        for house_light in self.components.house_light.entities() {
+            self.components.light.remove(house_light);
+        }
+    }
 }

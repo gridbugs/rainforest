@@ -60,7 +60,14 @@ pub fn render_game_with_visibility(
             let mist_colour = if game.should_hide_rain(world_coord) {
                 Rgba32::new(0, 0, 0, 0)
             } else {
-                mist.get(world_coord)
+                let mut colour = mist.get(world_coord);
+                let hour = game.time().hour();
+                match hour {
+                    0..=5 | 21.. => colour.a = colour.a.saturating_mul(2),
+                    6 | 19 | 20 => colour.a = colour.a.saturating_mul(3) / 2,
+                    _ => (),
+                }
+                colour
             };
             match visibility_cell.visibility(vis_count) {
                 CellVisibility::CurrentlyVisibleWithLightColour(Some(light_colour)) => {

@@ -23,6 +23,7 @@ pub const ALTAR_TOP_FOREGROUND: Rgba32 = Rgba32::new_rgb(185, 185, 185);
 pub const BULLETIN_TEXT: Rgba32 = Rgba32::new_rgb(0, 0, 0);
 pub const LAMP_BASE: Rgba32 = Rgba32::new_rgb(50, 50, 50);
 pub const LAMP_LIGHT: Rgba32 = Rgba32::new_rgb(185, 185, 0);
+pub const LAMP_OFF: Rgba32 = Rgba32::new_rgb(63, 63, 63);
 pub const PIER_FLOOR_BACKGROUND: Rgba32 = WOOD.saturating_scalar_mul_div(1, 2);
 pub const PIER_FLOOR_FOREGROUND: Rgba32 = WOOD;
 pub const GRASS: Rgba32 = Rgba32::hex_rgb(0x154712);

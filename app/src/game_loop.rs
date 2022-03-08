@@ -146,6 +146,7 @@ impl GameInstance {
     }
 
     pub fn render(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        self.render_top_ui(ctx.add_depth(10), fb);
         let offset = self.game.player_coord() - (GAME_VIEW_SIZE / 2);
         let ctx = ctx.add_offset(GAME_VIEW_OFFSET);
         crate::game::render_game_with_visibility(
@@ -161,7 +162,17 @@ impl GameInstance {
         );
         self.rain
             .render(&self.game, offset, GAME_VIEW_SIZE, ctx, fb);
+        self.render_bottom_ui(ctx.add_y(GAME_VIEW_SIZE.y() as i32 * 3), fb);
     }
+
+    fn render_top_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        let time = StyledString {
+            string: self.game.time().to_string(),
+            style: Style::plain_text(),
+        };
+        time.render(&(), ctx.add_x(62), fb);
+    }
+    fn render_bottom_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {}
 }
 
 pub enum GameLoopState {
@@ -307,7 +318,10 @@ impl GameLoopData {
                                 .game
                                 .player_walk(direction, &self.game_config, running)
                         }
-                        AppInput::Wait => (running.into_witness(), Ok(())),
+                        AppInput::Wait => (
+                            instance.game.player_wait(&self.game_config, running),
+                            Ok(()),
+                        ),
                         AppInput::Get => (running.into_witness(), Ok(())),
                         AppInput::Examine => {
                             return GameLoopState::Examine(running);
@@ -606,11 +620,63 @@ fn pause_menu_loop(running: witness::Running) -> CF<PauseOutput> {
     )
 }
 
+fn yes_no_menu() -> CF<bool> {
+    use menu::builder::*;
+    menu_builder()
+        .vi_keys()
+        .add_item(
+            item(
+                true,
+                MENU_FADE_SPEC.identifier(move |b| write!(b, "(y) Yes").unwrap()),
+            )
+            .add_hotkey_char('y')
+            .add_hotkey_char('Y'),
+        )
+        .add_item(
+            item(
+                false,
+                MENU_FADE_SPEC.identifier(move |b| write!(b, "(n) No").unwrap()),
+            )
+            .add_hotkey_char('n')
+            .add_hotkey_char('N'),
+        )
+        .build_boxed_cf()
+}
+
+fn yes_no(message: String) -> CF<bool> {
+    menu_style(
+        yes_no_menu().with_title(
+            boxed_cf(
+                StyledString {
+                    string: message,
+                    style: Style::plain_text(),
+                }
+                .wrap_word(),
+            )
+            .ignore_state()
+            .bound_width(40),
+            1,
+        ),
+    )
+}
+
+fn sleep_menu(sleep: witness::Sleep) -> CF<Witness> {
+    yes_no("Go to sleep?".to_string()).map_side_effect(|yes, state: &mut State| {
+        if yes {
+            let instance = state.instance.as_mut().unwrap();
+            instance.game.player_sleep(&state.game_config, sleep)
+        } else {
+            sleep.cancel()
+        }
+    })
+}
+
 pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
     use GameLoopState::*;
     loop_(initial_state, |state| match state {
         Playing(witness) => match witness {
             Witness::Running(running) => game_instance_component(running).continue_(),
+            Witness::Sleep(sleep) => sleep_menu(sleep).map(Playing).continue_(),
         },
         Paused(running) => pause_menu_loop(running).map(|pause_output| match pause_output {
             PauseOutput::ContinueGame { running } => {

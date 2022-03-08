@@ -19,6 +19,9 @@ declare_entity_module! {
         bulletin_board: (),
         lake: (),
         grass: (),
+        lamp: (),
+        house_light: (),
+        bed: (),
     }
 }
 pub use components::Components;
@@ -42,6 +45,7 @@ pub enum Tile {
     Altar,
     BulletinBoard,
     Lamp,
+    LampOff,
     PierFloor,
     Grass,
     FlatGrass,

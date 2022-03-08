@@ -44,6 +44,56 @@ impl ActionError {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct Time {
+    seconds: u32,
+}
+
+impl Time {
+    pub fn new(day: u32, hour: u32, minute: u32, second: u32) -> Self {
+        let seconds = (day * 86400) + (hour * 3600) + (minute * 60) + second;
+        Self { seconds }
+    }
+
+    pub fn second(&self) -> u32 {
+        self.seconds % 60
+    }
+
+    pub fn minute(&self) -> u32 {
+        (self.seconds % 3600) / 60
+    }
+
+    pub fn hour(&self) -> u32 {
+        (self.seconds % 86400) / 3600
+    }
+
+    pub fn day(&self) -> u32 {
+        self.seconds / 86400
+    }
+
+    pub fn to_string(&self) -> String {
+        let (am_pm, h) = match self.hour() {
+            0 => ("am", 12),
+            h @ 1..=11 => ("am", h),
+            12 => ("pm", 12),
+            h @ 13.. => ("pm", h - 12),
+        };
+        format!(
+            "Day {}, {}:{:02}:{:02}{}",
+            self.day(),
+            h,
+            self.minute(),
+            self.second(),
+            am_pm
+        )
+    }
+
+    fn is_night(&self) -> bool {
+        let h = self.hour();
+        h < 5 || h > 17
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Game {
     visibility_grid: VisibilityGrid,
@@ -51,6 +101,7 @@ pub struct Game {
     world: World,
     player: Entity,
     animation_context: AnimationContext,
+    time: Time,
 }
 
 impl Game {
@@ -69,8 +120,9 @@ impl Game {
             world,
             player,
             animation_context: AnimationContext::default(),
+            time: Time::new(0, 23, 17, 30),
         };
-        game.update_visibility(config);
+        game.after_turn(0, config);
         game
     }
 
@@ -109,6 +161,10 @@ impl Game {
         self.world.components.colour_hint.get(entity).cloned()
     }
 
+    pub fn time(&self) -> &Time {
+        &self.time
+    }
+
     fn update_visibility(&mut self, config: &Config) {
         if let Some(player_coord) = self.world.entity_coord(self.player) {
             self.visibility_grid.update(
@@ -134,6 +190,55 @@ impl Game {
         running.into_witness()
     }
 
+    fn after_turn(&mut self, time_delta: u32, config: &Config) {
+        let old_time = self.time;
+        self.time.seconds += time_delta;
+        if old_time.is_night() && !self.time.is_night() {
+            self.world.turn_lamps_off();
+        } else if !old_time.is_night() && self.time.is_night() {
+            self.world.turn_lamps_on();
+        }
+        let (player_light_colour, player_light_distance) = match self.time.hour() {
+            0 => (Rgb24::new(64, 64, 80), 25),
+            1 => (Rgb24::new(64, 64, 80), 25),
+            2 => (Rgb24::new(64, 64, 80), 25),
+            3 => (Rgb24::new(64, 64, 80), 25),
+            4 => (Rgb24::new(64, 64, 80), 25),
+            5 => (Rgb24::new(120, 100, 80), 50),
+            6 => (Rgb24::new(130, 110, 100), 80),
+            7 => (Rgb24::new(140, 120, 120), 120),
+            8 => (Rgb24::new(150, 140, 140), 160),
+            9 => (Rgb24::new(160, 160, 160), 200),
+            10 => (Rgb24::new(180, 180, 180), 200),
+            11 => (Rgb24::new(200, 200, 200), 200),
+            12 => (Rgb24::new(200, 200, 200), 200),
+            13 => (Rgb24::new(200, 200, 200), 200),
+            14 => (Rgb24::new(200, 200, 200), 200),
+            15 => (Rgb24::new(200, 200, 200), 200),
+            16 => (Rgb24::new(200, 200, 150), 200),
+            17 => (Rgb24::new(200, 150, 20), 120),
+            18 => (Rgb24::new(150, 120, 80), 80),
+            19 => (Rgb24::new(80, 80, 80), 25),
+            20 => (Rgb24::new(80, 80, 80), 25),
+            21 => (Rgb24::new(80, 80, 80), 25),
+            22 => (Rgb24::new(80, 80, 80), 25),
+            23 => (Rgb24::new(80, 80, 80), 25),
+            _ => panic!(),
+        };
+        {
+            let light = self
+                .world
+                .components
+                .light
+                .get_mut(self.player)
+                .expect("player lacks light");
+            light.colour = player_light_colour;
+            light.vision_distance =
+                shadowcast::vision_distance::Circle::new_squared(player_light_distance);
+        }
+        self.update_visibility(config);
+    }
+
     pub fn player_walk_inner(
         &mut self,
         direction: CardinalDirection,
@@ -155,6 +260,9 @@ impl Game {
                 }
             }
             if let Some(feature) = layers.feature {
+                if self.world.components.bed.contains(feature) {
+                    return (running.sleep(), Ok(()));
+                }
                 if self.world.components.solid.contains(feature) {
                     if self.world.components.door_state.contains(feature) {
                         self.world.open_door(feature);
@@ -191,6 +299,8 @@ impl Game {
         (running.into_witness(), Ok(()))
     }
 
+    const TURN_TIME: u32 = 3600;
+
     pub fn player_walk(
         &mut self,
         direction: CardinalDirection,
@@ -199,8 +309,18 @@ impl Game {
     ) -> (Witness, Result<(), ActionError>) {
         let (witness, result) = self.player_walk_inner(direction, running);
         if result.is_ok() {
-            self.update_visibility(config);
+            self.after_turn(Self::TURN_TIME, config);
         }
         (witness, result)
+    }
+
+    pub fn player_wait(&mut self, config: &Config, running: witness::Running) -> Witness {
+        self.after_turn(Self::TURN_TIME, config);
+        running.into_witness()
+    }
+
+    pub fn player_sleep(&mut self, config: &Config, sleep: witness::Sleep) -> Witness {
+        self.after_turn(3600 * 8, config);
+        sleep.running()
     }
 }

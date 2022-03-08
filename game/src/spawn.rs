@@ -113,22 +113,22 @@ impl World {
         entity
     }
 
+    pub const HOUSE_LIGHT: Light = Light {
+        colour: Rgb24::new(255, 255, 255),
+        vision_distance: Circle::new_squared(200),
+        diminish: Rational {
+            numerator: 1,
+            denominator: 10,
+        },
+    };
+
     pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(entity, Location { coord, layer: None })
             .unwrap();
-        self.components.light.insert(
-            entity,
-            Light {
-                colour,
-                vision_distance: Circle::new_squared(200),
-                diminish: Rational {
-                    numerator: 1,
-                    denominator: 10,
-                },
-            },
-        );
+        self.components.light.insert(entity, Self::HOUSE_LIGHT);
+        self.components.house_light.insert(entity, ());
         entity
     }
 
@@ -233,6 +233,15 @@ impl World {
         entity
     }
 
+    pub const LAMP_LIGHT: Light = Light {
+        colour: Rgb24::new(255, 255, 185),
+        vision_distance: Circle::new_squared(100),
+        diminish: Rational {
+            numerator: 1,
+            denominator: 10,
+        },
+    };
+
     pub fn spawn_lamp(&mut self, coord: Coord) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
@@ -246,17 +255,8 @@ impl World {
             .unwrap();
         self.components.tile.insert(entity, Tile::Lamp);
         self.components.solid.insert(entity, ());
-        self.components.light.insert(
-            entity,
-            Light {
-                colour: Rgb24::new(255, 255, 185),
-                vision_distance: Circle::new_squared(100),
-                diminish: Rational {
-                    numerator: 1,
-                    denominator: 4,
-                },
-            },
-        );
+        self.components.light.insert(entity, Self::LAMP_LIGHT);
+        self.components.lamp.insert(entity, ());
         entity
     }
 
@@ -371,6 +371,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Bed);
+        self.components.bed.insert(entity, ());
         entity
     }
 
