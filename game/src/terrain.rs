@@ -11,7 +11,6 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
     Rng,
 };
-use rgb_int::Rgb24;
 
 pub struct Terrain {
     pub world: World,
@@ -34,51 +33,51 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
             let coord = Coord::new(x as i32, y as i32);
             match ch {
                 ',' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                 }
                 '.' => {
-                    world.spawn_ground(coord);
+                    world.spawn_ground(coord, 0.);
                 }
                 '1' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_gumboots(coord);
                 }
                 '2' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_umbrella(coord);
                 }
                 '3' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_shovel(coord);
                 }
                 '4' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_map(coord);
                 }
                 '5' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_weather_report(coord);
                 }
                 '&' => {
-                    world.spawn_ground(coord);
+                    world.spawn_ground(coord, 0.);
                     world.spawn_tree(coord, rng);
                 }
                 'L' => {
-                    world.spawn_floor(coord);
-                    world.spawn_light(coord, Rgb24::new(255, 185, 100));
+                    world.spawn_floor(coord, 0.);
+                    world.spawn_light(coord);
                 }
                 'M' => {
-                    world.spawn_floor(coord);
-                    world.spawn_light(coord, Rgb24::new(255, 255, 255));
+                    world.spawn_floor(coord, 0.);
+                    world.spawn_light(coord);
                 }
                 '#' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     world.spawn_wall(coord);
                     prev_wall = true;
                     continue;
                 }
                 '+' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     if prev_wall {
                         world.spawn_door(coord, direction::Axis::Y);
                     } else {
@@ -86,7 +85,7 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
                     }
                 }
                 '%' => {
-                    world.spawn_floor(coord);
+                    world.spawn_floor(coord, 0.);
                     if prev_wall {
                         world.spawn_window(coord, direction::Axis::Y);
                     } else {
@@ -97,7 +96,7 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
                     world.spawn_water(coord, rng);
                 }
                 '@' => {
-                    world.spawn_ground(coord);
+                    world.spawn_ground(coord, 0.);
                     let location = Location {
                         coord,
                         layer: Some(Layer::Character),
@@ -127,7 +126,6 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     let tree_chance = Perlin2::new(rng);
     let tree_chance_spread = 0.05;
     let tree_chance_scale = 0.3;
-    let light_colour = Rgb24::new(255, 185, 100);
     let mut world = World::new(size);
     let mut no_trees = Grid::new_copy(size, false);
     let mut player_data = Some(player_data);
@@ -155,11 +153,14 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         .choose(rng)
         .ok_or("no cabin coord")?;
     world.spawn_bed(cabin_coord);
-    world.spawn_light(cabin_coord, Rgb24::new(255, 255, 255));
+    world.spawn_light(cabin_coord);
     let cabin_size = Size::new(9, 9);
     let cabin_top_left = cabin_coord - (cabin_size.to_coord().unwrap() / 2);
     for coord in cabin_size.coord_iter_row_major() {
-        world.spawn_floor(coord + cabin_top_left);
+        world.spawn_floor(
+            coord + cabin_top_left,
+            *topography_grid.get_checked(coord + cabin_top_left),
+        );
     }
     let door_direction = rng.gen::<CardinalDirection>();
     let door_coord =
@@ -167,7 +168,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
     *no_trees.get_checked_mut(door_coord + door_direction.coord()) = true;
     *no_trees.get_checked_mut(door_coord + door_direction.coord() * 2) = true;
     world.spawn_door(door_coord, door_direction.axis());
-    world.spawn_light(door_coord - door_direction.coord(), light_colour);
+    world.spawn_light(door_coord - door_direction.coord());
     let lamp_coord =
         door_coord + (door_direction.coord() * 5) + door_direction.left90().coord() * 1;
     world.spawn_lamp(lamp_coord);
@@ -184,7 +185,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         let window_coord =
             door_coord + coord * cabin_size.get(door_direction.axis().other()) as i32 / 4;
         world.spawn_window(window_coord, door_direction.axis());
-        world.spawn_light(window_coord - door_direction.coord(), light_colour);
+        world.spawn_light(window_coord - door_direction.coord());
         chair_candidates.push(window_coord - door_direction.coord());
     }
     for direction in [
@@ -195,13 +196,13 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         let mid_coord =
             cabin_coord + direction.coord() * cabin_size.get(direction.axis()) as i32 / 2;
         world.spawn_window(mid_coord, direction.axis());
-        world.spawn_light(mid_coord - direction.coord(), light_colour);
+        world.spawn_light(mid_coord - direction.coord());
         chair_candidates.push(mid_coord - direction.coord());
         for coord in [direction.left90().coord(), direction.right90().coord()] {
             let window_coord =
                 mid_coord + coord * cabin_size.get(direction.axis().other()) as i32 / 4;
             world.spawn_window(window_coord, direction.axis());
-            world.spawn_light(window_coord - direction.coord(), light_colour);
+            world.spawn_light(window_coord - direction.coord());
             chair_candidates.push(window_coord - direction.coord());
         }
     }
@@ -279,14 +280,14 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             out_coord += ruins_coord;
             match ch {
                 '#' => {
-                    world.spawn_ruins_floor(out_coord);
+                    world.spawn_ruins_floor(out_coord, *topography_grid.get_checked(out_coord));
                     world.spawn_ruins_wall(out_coord);
                 }
                 '.' => {
-                    world.spawn_ruins_floor(out_coord);
+                    world.spawn_ruins_floor(out_coord, *topography_grid.get_checked(out_coord));
                 }
                 '?' => {
-                    world.spawn_ruins_floor(out_coord);
+                    world.spawn_ruins_floor(out_coord, *topography_grid.get_checked(out_coord));
                     world.spawn_altar(out_coord);
                 }
                 other => panic!("unexpected char {}", other),
@@ -335,7 +336,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             for i in 0..pier_length {
                 let coord = pier_coord
                     + Coord::new_axis(i * lake_direction.sign(), 0, lake_direction.axis());
-                world.spawn_pier_floor(coord);
+                world.spawn_pier_floor(coord, *topography_grid.get_checked(coord));
                 *no_trees.get_checked_mut(coord) = true;
             }
             let pier_lamp_coord = pier_coord
@@ -358,7 +359,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 world.components.remove_entity(entity);
             }
 
-            world.spawn_pier_floor(pier_lamp_coord);
+            world.spawn_pier_floor(pier_lamp_coord, 1.);
             world.spawn_lamp(pier_lamp_coord);
         }
         let mut count = 0;
@@ -475,7 +476,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             continue;
         }
         if coord == player_location.coord {
-            world.spawn_ground(coord);
+            world.spawn_ground(coord, *topography_grid.get_checked(coord));
             continue;
         }
         if !no_trees.get_checked(coord)
@@ -510,7 +511,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 }
             }
         }
-        world.spawn_ground(coord);
+        world.spawn_ground(coord, *topography_grid.get_checked(coord));
     }
     let num_rocks = 60;
     if rock_candidates.len() < num_rocks {

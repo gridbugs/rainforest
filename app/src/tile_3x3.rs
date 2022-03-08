@@ -993,10 +993,11 @@ pub fn tree2(ctx: Ctx, fb: &mut FrameBuffer) {
 
 pub fn water(colour_hint: Rgb24, ctx: Ctx, fb: &mut FrameBuffer) {
     for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+        let depth = if offset.y == 2 { 5 } else { 0 };
         fb.set_cell_relative_to_ctx(
             ctx,
             offset,
-            0,
+            depth,
             RenderCell::default()
                 .with_character('~')
                 .with_foreground(colour_hint.saturating_scalar_mul_div(1, 1).to_rgba32(255))

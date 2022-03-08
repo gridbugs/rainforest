@@ -6,7 +6,7 @@ use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use serde::{Deserialize, Serialize};
 
-const MAX_NUM_DROPS: usize = 20000;
+const MAX_NUM_DROPS: usize = 30000;
 const SPASH_DURATION: u32 = 0;
 const DROP_INTERVAL: u32 = 1;
 
@@ -153,5 +153,10 @@ impl Rain {
                 }
             }
         }
+    }
+
+    pub fn update(&mut self, num_drops: usize, direction: RainDirection) {
+        self.num_drops = num_drops;
+        self.direction = direction;
     }
 }

@@ -1,6 +1,6 @@
 use direction::CardinalDirection;
-use grid_2d::{Coord, Size};
-use rand::{Rng, SeedableRng};
+use grid_2d::{Coord, Grid, Size};
+use rand::{seq::SliceRandom, Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
 use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
@@ -44,6 +44,62 @@ impl ActionError {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TopographyCell {
+    Height(f64),
+    Water,
+    Unknown,
+    Player,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum RainLevel {
+    Light,
+    Medium,
+    Heavy,
+}
+
+impl RainLevel {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Light => "Light Rain",
+            Self::Medium => "Medium Rain",
+            Self::Heavy => "Heavy Rain",
+        }
+        .to_string()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct RainSchedule {
+    per_day: Vec<Vec<RainLevel>>,
+}
+
+impl RainSchedule {
+    fn new<R: Rng>(rng: &mut R) -> Self {
+        use RainLevel::*;
+        let mut per_day = vec![
+            vec![Light, Light, Light],
+            vec![Medium, Light, Light],
+            vec![Medium, Medium, Light],
+            vec![Heavy, Medium, Light],
+            vec![Heavy, Medium, Medium],
+            vec![Heavy, Heavy, Medium],
+        ];
+        for v in &mut per_day {
+            v.shuffle(rng);
+        }
+        Self { per_day }
+    }
+
+    pub fn at_time(&self, time: Time) -> RainLevel {
+        self.per_day
+            .get(time.day() as usize)
+            .and_then(|a| a.get(time.hour() as usize / 8).cloned())
+            .unwrap_or(RainLevel::Heavy)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Time {
     seconds: u32,
@@ -72,20 +128,25 @@ impl Time {
     }
 
     pub fn to_string(&self) -> String {
-        let (am_pm, h) = match self.hour() {
-            0 => ("am", 12),
-            h @ 1..=11 => ("am", h),
-            12 => ("pm", 12),
-            h @ 13.. => ("pm", h - 12),
-        };
-        format!(
-            "Day {}, {}:{:02}:{:02}{}",
-            self.day(),
-            h,
-            self.minute(),
-            self.second(),
-            am_pm
-        )
+        if false {
+            // 12 hr time
+            let (am_pm, h) = match self.hour() {
+                0 => ("am", 12),
+                h @ 1..=11 => ("am", h),
+                12 => ("pm", 12),
+                h @ 13.. => ("pm", h - 12),
+            };
+            format!(
+                "Day {}, {}:{:02}:{:02}{}",
+                self.day(),
+                h,
+                self.minute(),
+                self.second(),
+                am_pm
+            )
+        } else {
+            format!("Day {}, {}:{:02}", self.day(), self.hour(), self.minute(),)
+        }
     }
 
     fn is_night(&self) -> bool {
@@ -102,6 +163,10 @@ pub struct Game {
     player: Entity,
     animation_context: AnimationContext,
     time: Time,
+    rain_schedule: RainSchedule,
+    num_flooded: usize,
+    rng: Isaac64Rng,
+    last_sleep: Option<u32>,
 }
 
 impl Game {
@@ -121,6 +186,10 @@ impl Game {
             player,
             animation_context: AnimationContext::default(),
             time: Time::new(0, 23, 17, 30),
+            rain_schedule: RainSchedule::new(&mut rng),
+            num_flooded: 0,
+            rng,
+            last_sleep: None,
         };
         game.after_turn(0, config);
         game
@@ -165,6 +234,10 @@ impl Game {
         &self.time
     }
 
+    pub fn rain_level(&self) -> RainLevel {
+        self.rain_schedule.at_time(self.time)
+    }
+
     fn update_visibility(&mut self, config: &Config) {
         if let Some(player_coord) = self.world.entity_coord(self.player) {
             self.visibility_grid.update(
@@ -180,6 +253,27 @@ impl Game {
         }
     }
 
+    pub fn topography_grid(&self) -> Grid<TopographyCell> {
+        Grid::new_fn(self.world_size(), |coord| {
+            if let Some(character) = self.world.spatial_table.layers_at_checked(coord).character {
+                if self.world.components.player.contains(character) {
+                    return TopographyCell::Player;
+                }
+            }
+            if let Some(floor) = self.world.spatial_table.layers_at_checked(coord).floor {
+                if let Some(&height) = self.world.components.height.get(floor) {
+                    TopographyCell::Height(height)
+                } else if self.world.components.lake.contains(floor) {
+                    TopographyCell::Water
+                } else {
+                    TopographyCell::Unknown
+                }
+            } else {
+                TopographyCell::Unknown
+            }
+        })
+    }
+
     pub fn tick(
         &mut self,
         _since_previous: Duration,
@@ -189,6 +283,8 @@ impl Game {
         self.animation_context.tick(&mut self.world);
         running.into_witness()
     }
+
+    const FLOOD_STEP: usize = 400;
 
     fn after_turn(&mut self, time_delta: u32, config: &Config) {
         let old_time = self.time;
@@ -236,6 +332,10 @@ impl Game {
             light.vision_distance =
                 shadowcast::vision_distance::Circle::new_squared(player_light_distance);
         }
+        if old_time.day() != self.time.day() {
+            self.num_flooded += Self::FLOOD_STEP;
+            self.world.flood(self.num_flooded, &mut self.rng);
+        }
         self.update_visibility(config);
     }
 
@@ -261,6 +361,14 @@ impl Game {
             }
             if let Some(feature) = layers.feature {
                 if self.world.components.bed.contains(feature) {
+                    if let Some(last_sleep) = self.last_sleep {
+                        if self.time.seconds - last_sleep < 8 * 3600 {
+                            return (
+                                running.into_witness(),
+                                ActionError::err_msg("You don't feel like sleeping yet"),
+                            );
+                        }
+                    }
                     return (running.sleep(), Ok(()));
                 }
                 if self.world.components.solid.contains(feature) {
@@ -299,7 +407,7 @@ impl Game {
         (running.into_witness(), Ok(()))
     }
 
-    const TURN_TIME: u32 = 3600;
+    const TURN_TIME: u32 = 60;
 
     pub fn player_walk(
         &mut self,
@@ -314,13 +422,49 @@ impl Game {
         (witness, result)
     }
 
+    pub fn player_walk_until_collide(
+        &mut self,
+        direction: CardinalDirection,
+        config: &Config,
+        mut running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        loop {
+            let player_coord = self
+                .world
+                .spatial_table
+                .coord_of(self.player)
+                .expect("can't get coord of player");
+            let destination = player_coord + direction.coord();
+            if let Some(layers) = self.world.spatial_table.layers_at(destination) {
+                if layers.feature.is_some() {
+                    break (running.into_witness(), Ok(()));
+                }
+            }
+            let (witness, result) = self.player_walk_inner(direction, running);
+            if result.is_ok() {
+                self.after_turn(Self::TURN_TIME, config);
+            }
+            if let Witness::Running(next_running) = witness {
+                running = next_running;
+            } else {
+                break (witness, result);
+            }
+        }
+    }
+
     pub fn player_wait(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(Self::TURN_TIME, config);
         running.into_witness()
     }
 
+    pub fn player_wait_long(&mut self, config: &Config, running: witness::Running) -> Witness {
+        self.after_turn(3600, config);
+        running.into_witness()
+    }
+
     pub fn player_sleep(&mut self, config: &Config, sleep: witness::Sleep) -> Witness {
         self.after_turn(3600 * 8, config);
+        self.last_sleep = Some(self.time.seconds);
         sleep.running()
     }
 }

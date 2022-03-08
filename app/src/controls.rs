@@ -7,9 +7,13 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AppInput {
     Direction(CardinalDirection),
+    DirectionLong(CardinalDirection),
     Wait,
+    WaitLong,
     Examine,
     Get,
+    Map,
+    WeatherReport,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,9 +37,20 @@ impl Default for Controls {
             KeyboardInput::Char('l') => AppInput::Direction(CardinalDirection::East),
             KeyboardInput::Char('k') => AppInput::Direction(CardinalDirection::North),
             KeyboardInput::Char('j') => AppInput::Direction(CardinalDirection::South),
+            KeyboardInput::Char('A') => AppInput::DirectionLong(CardinalDirection::West),
+            KeyboardInput::Char('D') => AppInput::DirectionLong(CardinalDirection::East),
+            KeyboardInput::Char('W') => AppInput::DirectionLong(CardinalDirection::North),
+            KeyboardInput::Char('S') => AppInput::DirectionLong(CardinalDirection::South),
+            KeyboardInput::Char('H') => AppInput::DirectionLong(CardinalDirection::West),
+            KeyboardInput::Char('L') => AppInput::DirectionLong(CardinalDirection::East),
+            KeyboardInput::Char('K') => AppInput::DirectionLong(CardinalDirection::North),
+            KeyboardInput::Char('J') => AppInput::DirectionLong(CardinalDirection::South),
             KeyboardInput::Char('x') => AppInput::Examine,
             KeyboardInput::Char('g') => AppInput::Get,
+            KeyboardInput::Char('m') => AppInput::Map,
+            KeyboardInput::Char('r') => AppInput::WeatherReport,
             KeyboardInput::Char(' ') => AppInput::Wait,
+            KeyboardInput::Char('.') => AppInput::WaitLong,
         ];
         let gamepad = btreemap![
             GamepadButton::DPadLeft => AppInput::Direction(CardinalDirection::West),

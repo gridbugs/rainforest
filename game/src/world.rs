@@ -6,6 +6,7 @@ use crate::{
 };
 use entity_table::{Entity, EntityAllocator};
 use grid_2d::{Coord, Size};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -173,6 +174,23 @@ impl World {
         }
         for house_light in self.components.house_light.entities() {
             self.components.light.remove(house_light);
+        }
+    }
+
+    pub fn flood<R: Rng>(&mut self, n: usize, rng: &mut R) {
+        let mut entities_by_height = self
+            .components
+            .height
+            .iter()
+            .map(|(a, &b)| (a, b))
+            .collect::<Vec<_>>();
+        entities_by_height.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        for &(entity, _) in entities_by_height.iter().take(n) {
+            self.become_water(entity, rng);
+        }
+        for &(entity, _) in entities_by_height.iter().skip(n) {
+            self.components.tile.insert(entity, Tile::Ground);
+            self.components.realtime.remove(entity);
         }
     }
 }

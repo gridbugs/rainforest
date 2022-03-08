@@ -65,7 +65,7 @@ pub fn render_game_with_visibility(
                 match hour {
                     0..=5 | 21.. => colour.a = colour.a.saturating_mul(2),
                     6 | 19 | 20 => colour.a = colour.a.saturating_mul(3) / 2,
-                    _ => (),
+                    _ => colour.a = colour.a.saturating_mul(4) / 3,
                 }
                 colour
             };

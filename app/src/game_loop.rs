@@ -8,9 +8,10 @@ use crate::{
     text, AppStorage, InitialRngSeed,
 };
 use chargrid::{border::BorderStyle, control_flow::boxed::*, menu, prelude::*, text::StyledString};
+use grid_2d::Grid;
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
-    ActionError, Config as GameConfig, Game,
+    ActionError, Config as GameConfig, Game, RainLevel, TopographyCell,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -170,9 +171,14 @@ impl GameInstance {
             string: self.game.time().to_string(),
             style: Style::plain_text(),
         };
-        time.render(&(), ctx.add_x(62), fb);
+        time.render(&(), ctx.add_x(67), fb);
+        let weather = StyledString {
+            string: self.game.rain_level().to_string(),
+            style: Style::plain_text(),
+        };
+        weather.render(&(), ctx.add_xy(67, 1), fb);
     }
-    fn render_bottom_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {}
+    fn render_bottom_ui(&self, _ctx: Ctx, _fb: &mut FrameBuffer) {}
 }
 
 pub enum GameLoopState {
@@ -180,6 +186,7 @@ pub enum GameLoopState {
     Paused(witness::Running),
     Playing(Witness),
     MainMenu,
+    Map(witness::Running),
 }
 
 pub struct GameLoopData {
@@ -318,11 +325,20 @@ impl GameLoopData {
                                 .game
                                 .player_walk(direction, &self.game_config, running)
                         }
+                        AppInput::DirectionLong(direction) => instance
+                            .game
+                            .player_walk_until_collide(direction, &self.game_config, running),
                         AppInput::Wait => (
                             instance.game.player_wait(&self.game_config, running),
                             Ok(()),
                         ),
+                        AppInput::WaitLong => (
+                            instance.game.player_wait_long(&self.game_config, running),
+                            Ok(()),
+                        ),
                         AppInput::Get => (running.into_witness(), Ok(())),
+                        AppInput::Map => return GameLoopState::Map(running),
+                        AppInput::WeatherReport => (running.into_witness(), Ok(())),
                         AppInput::Examine => {
                             return GameLoopState::Examine(running);
                         }
@@ -338,6 +354,11 @@ impl GameLoopData {
                 }
             }
             Event::Tick(since_previous) => {
+                match instance.game.rain_level() {
+                    RainLevel::Light => instance.rain.update(4000, RainDirection::Vertical),
+                    RainLevel::Medium => instance.rain.update(10000, RainDirection::Diagonal),
+                    RainLevel::Heavy => instance.rain.update(30000, RainDirection::Diagonal),
+                }
                 instance.rain.tick();
                 instance.mist.tick();
                 instance
@@ -440,11 +461,85 @@ fn game_examine_component() -> CF<()> {
     on_state_then(|state: &mut State| {
         state.context_message = Some(StyledString {
             string: "Examining (escape/start to return to game)".to_string(),
-            style: Style::plain_text().with_foreground(Rgba32::new_grey(100)),
+            style: Style::plain_text(),
         });
         let cursor = state.cursor.unwrap_or_else(|| state.game().player_coord());
         state.cursor = Some(cursor);
         boxed_cf(GameExamineComponent)
+            .catch_escape_or_start()
+            .map_val(|| ())
+            .side_effect(|state: &mut State| {
+                state.context_message = None;
+                state.cursor = None;
+            })
+    })
+}
+
+struct MapComponent(Grid<TopographyCell>);
+impl Component for MapComponent {
+    type Output = Option<()>;
+    type State = GameLoopData;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        state.render_text(ctx, fb);
+        let ctx = ctx.add_xy(17, 6);
+        for (coord, &cell) in self.0.enumerate() {
+            let (render_cell, depth) = match cell {
+                TopographyCell::Height(height) => (
+                    RenderCell::default()
+                        .with_character(' ')
+                        .with_background(Rgba32::new_grey((height.clamp(0., 1.) * 255.) as u8)),
+                    0,
+                ),
+                TopographyCell::Water => (
+                    RenderCell::default()
+                        .with_character('~')
+                        .with_background(Rgba32::new_grey(0)),
+                    0,
+                ),
+                TopographyCell::Unknown => (RenderCell::default().with_character('?'), 0),
+                TopographyCell::Player => (
+                    RenderCell::default()
+                        .with_character('@')
+                        .with_bold(true)
+                        .with_foreground(Rgba32::new_rgb(255, 0, 0)),
+                    1,
+                ),
+            };
+            fb.set_cell_relative_to_ctx(ctx, coord / 3, depth, render_cell);
+        }
+    }
+
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input) => {
+                if let Some(app_input) = state.controls.get(input) {
+                    match app_input {
+                        AppInput::Map => return Some(()),
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        None
+    }
+
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
+}
+
+fn map_component() -> CF<()> {
+    on_state_then(|state: &mut State| {
+        state.context_message = Some(StyledString {
+            string: "Topographic Map (escape/start to return to game)".to_string(),
+            style: Style::plain_text(),
+        });
+        let topography_grid = state.game().topography_grid();
+        state.examine_message = None;
+        boxed_cf(MapComponent(topography_grid))
             .catch_escape_or_start()
             .map_val(|| ())
             .side_effect(|state: &mut State| {
@@ -686,6 +781,9 @@ pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
             PauseOutput::Quit => LoopControl::Break(()),
         }),
         Examine(running) => game_examine_component()
+            .map_val(|| Playing(running.into_witness()))
+            .continue_(),
+        Map(running) => map_component()
             .map_val(|| Playing(running.into_witness()))
             .continue_(),
         MainMenu => main_menu_loop().map(|main_menu_output| match main_menu_output {

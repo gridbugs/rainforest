@@ -14,7 +14,7 @@ use rgb_int::Rgb24;
 use shadowcast::vision_distance::Circle;
 
 impl World {
-    pub fn spawn_floor(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_floor(&mut self, coord: Coord, height: f64) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(
@@ -26,10 +26,11 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Floor);
+        self.components.height.insert(entity, height);
         entity
     }
 
-    pub fn spawn_ground(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_ground(&mut self, coord: Coord, height: f64) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(
@@ -41,6 +42,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Ground);
+        self.components.height.insert(entity, height);
         entity
     }
 
@@ -122,7 +124,7 @@ impl World {
         },
     };
 
-    pub fn spawn_light(&mut self, coord: Coord, colour: Rgb24) -> Entity {
+    pub fn spawn_light(&mut self, coord: Coord) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(entity, Location { coord, layer: None })
@@ -143,6 +145,10 @@ impl World {
                 },
             )
             .unwrap();
+        self.become_water(entity, rng);
+        entity
+    }
+    pub fn become_water<R: Rng>(&mut self, entity: Entity, rng: &mut R) {
         self.components.tile.insert(entity, Tile::Water);
         let colour_range = UniformInclusiveRange {
             low: Rgb24::new(10, 40, 100),
@@ -165,10 +171,9 @@ impl World {
             .colour_hint
             .insert(entity, colour_range.choose(rng));
         self.components.realtime.insert(entity, ());
-        entity
     }
 
-    pub fn spawn_ruins_floor(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_ruins_floor(&mut self, coord: Coord, height: f64) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(
@@ -180,6 +185,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::RuinsFloor);
+        self.components.height.insert(entity, height);
         entity
     }
 
@@ -238,7 +244,7 @@ impl World {
         vision_distance: Circle::new_squared(100),
         diminish: Rational {
             numerator: 1,
-            denominator: 10,
+            denominator: 20,
         },
     };
 
@@ -260,7 +266,7 @@ impl World {
         entity
     }
 
-    pub fn spawn_pier_floor(&mut self, coord: Coord) -> Entity {
+    pub fn spawn_pier_floor(&mut self, coord: Coord, height: f64) -> Entity {
         let entity = self.entity_allocator.alloc();
         self.spatial_table
             .update(
@@ -272,6 +278,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::PierFloor);
+        self.components.height.insert(entity, height);
         entity
     }
 
