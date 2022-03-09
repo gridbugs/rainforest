@@ -18,6 +18,14 @@ impl Running {
     pub(crate) fn sleep(self) -> Witness {
         Sleep(self.0).into_witness()
     }
+
+    pub(crate) fn prompt(self, message: String) -> Witness {
+        Prompt {
+            message,
+            private: self.0,
+        }
+        .into_witness()
+    }
 }
 
 #[derive(Debug)]
@@ -28,12 +36,36 @@ impl Sleep {
         Witness::Sleep(self)
     }
 
-    pub(crate) fn running(self) -> Witness {
+    pub fn cancel(self) -> Witness {
         Running(self.0).into_witness()
     }
 
-    pub fn cancel(self) -> Witness {
-        Running(self.0).into_witness()
+    pub(crate) fn prompt(self, message: String) -> Witness {
+        Prompt {
+            message,
+            private: self.0,
+        }
+        .into_witness()
+    }
+}
+
+#[derive(Debug)]
+pub struct Prompt {
+    message: String,
+    private: Private,
+}
+
+impl Prompt {
+    pub fn into_witness(self) -> Witness {
+        Witness::Prompt(self)
+    }
+
+    pub fn running(self) -> Witness {
+        Running(self.private).into_witness()
+    }
+
+    pub fn message(&self) -> &str {
+        self.message.as_str()
     }
 }
 
@@ -41,6 +73,8 @@ impl Sleep {
 pub enum Witness {
     Running(Running),
     Sleep(Sleep),
+    Prompt(Prompt),
+    GameOver,
 }
 
 pub fn new_game<R: Rng>(config: &Config, base_rng: &mut R) -> (Game, Running) {

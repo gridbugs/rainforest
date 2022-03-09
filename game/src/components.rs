@@ -25,6 +25,8 @@ declare_entity_module! {
         bed: (),
         height: f64,
         ground: (),
+        tree: (),
+        end_of_pier: (),
     }
 }
 pub use components::Components;

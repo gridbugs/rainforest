@@ -79,6 +79,7 @@ impl World {
         self.components.tile.insert(entity, tile);
         self.components.solid.insert(entity, ());
         self.components.opacity.insert(entity, 127);
+        self.components.tree.insert(entity, ());
         entity
     }
 

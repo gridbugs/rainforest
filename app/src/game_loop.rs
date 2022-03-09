@@ -7,7 +7,10 @@ use crate::{
     rain::{Rain, RainDirection},
     text, AppStorage, InitialRngSeed,
 };
-use chargrid::{border::BorderStyle, control_flow::boxed::*, menu, prelude::*, text::StyledString};
+use chargrid::{
+    border::BorderStyle, control_flow::boxed::*, menu, pad_by::Padding, prelude::*,
+    text::StyledString,
+};
 use grid_2d::Grid;
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
@@ -178,7 +181,35 @@ impl GameInstance {
         };
         weather.render(&(), ctx.add_xy(67, 1), fb);
     }
-    fn render_bottom_ui(&self, _ctx: Ctx, _fb: &mut FrameBuffer) {}
+    fn render_bottom_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {
+        StyledString::plain_text(format!("Motivation: {}", self.game.motivation())).render(
+            &(),
+            ctx.add_y(0),
+            fb,
+        );
+        let motivation_modifiers = self
+            .game
+            .last_motivation_modifiers()
+            .iter()
+            .map(|m| {
+                let sign = if m.value() >= 0 { "+" } else { "" };
+                format!("{} ({}{})", m.to_string(), sign, m.value())
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let motivation_change: i32 = self
+            .game
+            .last_motivation_modifiers()
+            .iter()
+            .map(|m| m.value())
+            .sum();
+        StyledString::plain_text(format!(
+            "Motivation Change: {} = {}",
+            motivation_change, motivation_modifiers
+        ))
+        .wrap_word()
+        .render(&(), ctx.add_y(1), fb);
+    }
 }
 
 pub enum GameLoopState {
@@ -628,6 +659,18 @@ fn menu_style<T: 'static>(menu: CF<T>) -> CF<T> {
         )
 }
 
+fn popup_style<T: 'static>(menu: CF<T>) -> CF<T> {
+    menu.border(BorderStyle::default())
+        .fill(Rgba32::new_grey(0))
+        .centre()
+        .add_y(30)
+        .overlay_tint(
+            render_state(|state: &State, ctx, fb| state.render(colour::CURSOR, ctx, fb)),
+            chargrid::core::TintDim(255),
+            10,
+        )
+}
+
 #[derive(Clone)]
 enum MainMenuEntry {
     NewGame,
@@ -798,12 +841,47 @@ fn sleep_menu(sleep: witness::Sleep) -> CF<Witness> {
     })
 }
 
+fn popup(string: String) -> CF<()> {
+    popup_style(
+        StyledString {
+            string,
+            style: Style::new()
+                .with_bold(false)
+                .with_underline(false)
+                .with_foreground(Rgba32::new_grey(255)),
+        }
+        .wrap_word()
+        .boxed_cf()
+        .bound_width(50)
+        .pad_by(Padding::all(1))
+        .press_any_key(),
+    )
+}
+
+fn prompt(prompt_witness: witness::Prompt) -> CF<Witness> {
+    on_state_then(move |state: &mut State| {
+        state.examine_message = None;
+        state.cursor = None;
+        popup(prompt_witness.message().to_string()).map_val(|| prompt_witness.running())
+    })
+}
+
+fn game_over() -> CF<()> {
+    on_state_then(move |state: &mut State| {
+        state.examine_message = None;
+        state.cursor = None;
+        popup("You tire of trudging through the flooded forest in the rain. You pack up your belongings and return home.".to_string())
+    })
+}
+
 pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
     use GameLoopState::*;
     loop_(initial_state, |state| match state {
         Playing(witness) => match witness {
             Witness::Running(running) => game_instance_component(running).continue_(),
             Witness::Sleep(sleep) => sleep_menu(sleep).map(Playing).continue_(),
+            Witness::Prompt(prompt_witness) => prompt(prompt_witness).map(Playing).continue_(),
+            Witness::GameOver => game_over().map_val(|| MainMenu).continue_(),
         },
         Paused(running) => pause_menu_loop(running).map(|pause_output| match pause_output {
             PauseOutput::ContinueGame { running } => {

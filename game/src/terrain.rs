@@ -340,6 +340,10 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 world.spawn_pier_floor(coord, *topography_grid.get_checked(coord));
                 *no_trees.get_checked_mut(coord) = true;
             }
+            let pier_end_coord = pier_coord + (lake_direction.coord() * (pier_length - 1));
+            if let Some(floor) = world.spatial_table.layers_at_checked(pier_end_coord).floor {
+                world.components.end_of_pier.insert(floor, ());
+            }
             let pier_lamp_coord = pier_coord
                 + (lake_direction.coord() * (pier_length - 1))
                 + if rng.gen() {
@@ -359,7 +363,6 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 world.spatial_table.remove(entity);
                 world.components.remove_entity(entity);
             }
-
             world.spawn_pier_floor(pier_lamp_coord, 1.);
             world.spawn_lamp(pier_lamp_coord);
         }

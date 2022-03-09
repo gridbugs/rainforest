@@ -1,4 +1,3 @@
-use crate::colour;
 use chargrid::prelude::*;
 use grid_2d::{Coord, Grid, Size};
 use rand::{

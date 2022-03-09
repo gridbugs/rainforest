@@ -44,6 +44,47 @@ impl ActionError {
     }
 }
 
+mod motivation {
+    pub const SLEEP: i32 = 400;
+    pub const LAKE: i32 = 1000;
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum MotivationModifier {
+    PassageOfTime,
+    OutsideInRain(RainLevel),
+    UnderTree,
+    InFloodWater,
+    Tired,
+}
+
+impl MotivationModifier {
+    pub fn value(&self) -> i32 {
+        match self {
+            Self::PassageOfTime => -1,
+            Self::OutsideInRain(RainLevel::Light) => -1,
+            Self::OutsideInRain(RainLevel::Medium) => -2,
+            Self::OutsideInRain(RainLevel::Heavy) => -3,
+            Self::UnderTree => 1,
+            Self::InFloodWater => -5,
+            Self::Tired => -2,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::PassageOfTime => "Passage of Time",
+            Self::OutsideInRain(RainLevel::Light) => "Outside in Light Rain",
+            Self::OutsideInRain(RainLevel::Medium) => "Outside in Medium Rain",
+            Self::OutsideInRain(RainLevel::Heavy) => "Outside in Heavy Rain",
+            Self::UnderTree => "Under a Tree",
+            Self::InFloodWater => "In Flood Water",
+            Self::Tired => "Tired",
+        }
+        .to_string()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum TopographyCell {
     Height(f64),
@@ -83,12 +124,12 @@ impl RainSchedule {
     fn new<R: Rng>(rng: &mut R) -> Self {
         use RainLevel::*;
         let mut per_day = vec![
-            vec![Light, Light, Light],
-            vec![Medium, Light, Light],
-            vec![Medium, Medium, Light],
-            vec![Heavy, Medium, Light],
-            vec![Heavy, Medium, Medium],
-            vec![Heavy, Heavy, Medium],
+            vec![Light, Light, Light, Light, Light, Light],
+            vec![Medium, Medium, Light, Light, Light, Light],
+            vec![Medium, Medium, Medium, Medium, Light, Light],
+            vec![Heavy, Medium, Medium, Medium, Light, Light],
+            vec![Heavy, Heavy, Medium, Medium, Medium, Medium],
+            vec![Heavy, Heavy, Heavy, Heavy, Medium, Medium],
         ];
         for v in &mut per_day {
             v.shuffle(rng);
@@ -99,7 +140,7 @@ impl RainSchedule {
     pub fn at_time(&self, time: Time) -> RainLevel {
         self.per_day
             .get(time.day() as usize)
-            .and_then(|a| a.get(time.hour() as usize / 8).cloned())
+            .and_then(|a| a.get(time.hour() as usize / 4).cloned())
             .unwrap_or(RainLevel::Heavy)
     }
 }
@@ -160,6 +201,11 @@ impl Time {
 }
 
 #[derive(Serialize, Deserialize)]
+struct MotivationFlags {
+    lake: bool,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Game {
     visibility_grid: VisibilityGrid,
     shadowcast_context: ShadowcastContext<u8>,
@@ -171,9 +217,13 @@ pub struct Game {
     num_flooded: usize,
     rng: Isaac64Rng,
     last_sleep: Option<u32>,
+    motivation: i32,
+    last_motivation_modifiers: Vec<MotivationModifier>,
+    motivation_flags: MotivationFlags,
 }
 
 impl Game {
+    const INITIAL_MOTIVATION: i32 = 1000;
     pub fn new<R: Rng>(config: &Config, base_rng: &mut R) -> Self {
         let mut rng = Isaac64Rng::from_rng(base_rng).unwrap();
         let player_data = components::make_player();
@@ -194,8 +244,13 @@ impl Game {
             num_flooded: 0,
             rng,
             last_sleep: None,
+            motivation: Self::INITIAL_MOTIVATION,
+            last_motivation_modifiers: Vec::new(),
+            motivation_flags: MotivationFlags { lake: true },
         };
         game.after_turn(0, config);
+        game.update_motivation();
+        game.motivation = Self::INITIAL_MOTIVATION;
         game
     }
 
@@ -309,6 +364,79 @@ impl Game {
         })
     }
 
+    pub fn motivation(&self) -> i32 {
+        self.motivation
+    }
+
+    fn update_motivation(&mut self) {
+        let player_coord = self.player_coord();
+        self.last_motivation_modifiers.clear();
+        self.last_motivation_modifiers
+            .push(MotivationModifier::PassageOfTime);
+        if !self.should_hide_rain(player_coord) {
+            self.last_motivation_modifiers
+                .push(MotivationModifier::OutsideInRain(self.rain_level()));
+            if self.is_player_next_to_tree() {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::UnderTree);
+            }
+        }
+        if self.is_player_in_flood_water() {
+            self.last_motivation_modifiers
+                .push(MotivationModifier::InFloodWater);
+        }
+        if let Some(last_sleep) = self.last_sleep {
+            if self.time.seconds - last_sleep > 3600 * 20 {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::Tired);
+            }
+        } else {
+            if self.time.seconds > Time::new(1, 1, 0, 0).seconds {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::Tired);
+            }
+        }
+        for m in &self.last_motivation_modifiers {
+            self.motivation += m.value();
+        }
+    }
+
+    pub fn last_motivation_modifiers(&self) -> &[MotivationModifier] {
+        &self.last_motivation_modifiers
+    }
+
+    fn is_player_next_to_tree(&self) -> bool {
+        let player_coord = self.player_coord();
+        for d in CardinalDirection::all() {
+            if let Some(feature) = self
+                .world
+                .spatial_table
+                .layers_at_checked(player_coord + d.coord())
+                .feature
+            {
+                if self.world.components.tree.contains(feature) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn is_player_in_flood_water(&self) -> bool {
+        let player_coord = self.player_coord();
+        if let Some(floor) = self
+            .world
+            .spatial_table
+            .layers_at_checked(player_coord)
+            .floor
+        {
+            if self.world.components.water.contains(floor) {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn tick(
         &mut self,
         _since_previous: Duration,
@@ -370,6 +498,10 @@ impl Game {
         if old_time.day() != self.time.day() {
             self.num_flooded += Self::FLOOD_STEP;
             self.world.flood(self.num_flooded, &mut self.rng);
+            self.motivation_flags.lake = false;
+        }
+        for _ in 0..(time_delta / Self::TURN_TIME) {
+            self.update_motivation();
         }
         self.update_visibility(config);
     }
@@ -436,6 +568,19 @@ impl Game {
                 .world
                 .spatial_table
                 .update_coord(self.player, destination);
+            if let Some(floor) = self
+                .world
+                .spatial_table
+                .layers_at_checked(destination)
+                .floor
+            {
+                if self.world.components.end_of_pier.contains(floor) && !self.motivation_flags.lake
+                {
+                    self.motivation_flags.lake = true;
+                    self.motivation += motivation::LAKE;
+                    return (running.prompt(format!("Contemplating the vastness of this lake puts your life into perspective.\n\nMotivation increased by {}.", motivation::LAKE)), Ok(()));
+                }
+            }
         } else {
             return (running.into_witness(), ActionError::err_cant_walk_there());
         }
@@ -454,6 +599,9 @@ impl Game {
         if result.is_ok() {
             self.after_turn(Self::TURN_TIME, config);
         }
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
+        }
         (witness, result)
     }
 
@@ -463,7 +611,7 @@ impl Game {
         config: &Config,
         mut running: witness::Running,
     ) -> (Witness, Result<(), ActionError>) {
-        loop {
+        let ret = loop {
             let player_coord = self
                 .world
                 .spatial_table
@@ -489,22 +637,38 @@ impl Game {
             } else {
                 break (witness, result);
             }
+        };
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
         }
+        ret
     }
 
     pub fn player_wait(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(Self::TURN_TIME, config);
+        if self.motivation <= 0 {
+            return Witness::GameOver;
+        }
         running.into_witness()
     }
 
     pub fn player_wait_long(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(3600, config);
+        if self.motivation <= 0 {
+            return Witness::GameOver;
+        }
         running.into_witness()
     }
 
     pub fn player_sleep(&mut self, config: &Config, sleep: witness::Sleep) -> Witness {
+        let motivation = self.motivation;
         self.after_turn(3600 * 8, config);
         self.last_sleep = Some(self.time.seconds);
-        sleep.running()
+        self.motivation = motivation; // don't lose motivation while asleep
+        self.motivation += motivation::SLEEP;
+        sleep.prompt(format!(
+            "You sleep for 8 hours.\n\nMotivation increased by {}.",
+            motivation::SLEEP
+        ))
     }
 }
