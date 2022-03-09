@@ -503,8 +503,40 @@ impl Component for MapComponent {
                         .with_character('@')
                         .with_bold(true)
                         .with_foreground(Rgba32::new_rgb(255, 0, 0)),
-                    1,
+                    2,
                 ),
+                TopographyCell::Ruins => {
+                    StyledString::plain_text("Ruins".to_string()).render(
+                        &(),
+                        ctx.add_offset(coord / 3).add_depth(1),
+                        fb,
+                    );
+                    continue;
+                }
+                TopographyCell::Cabin => {
+                    StyledString::plain_text("Cabin".to_string()).render(
+                        &(),
+                        ctx.add_offset(coord / 3).add_depth(1),
+                        fb,
+                    );
+                    continue;
+                }
+                TopographyCell::Tea => {
+                    StyledString::plain_text("Tea".to_string()).render(
+                        &(),
+                        ctx.add_offset(coord / 3).add_depth(1),
+                        fb,
+                    );
+                    continue;
+                }
+                TopographyCell::Flowers => {
+                    StyledString::plain_text("Flowers".to_string()).render(
+                        &(),
+                        ctx.add_offset(coord / 3).add_depth(1),
+                        fb,
+                    );
+                    continue;
+                }
             };
             fb.set_cell_relative_to_ctx(ctx, coord / 3, depth, render_cell);
         }

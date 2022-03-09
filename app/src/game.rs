@@ -96,6 +96,7 @@ pub fn render_game_with_visibility(
                         visibility_cell,
                         game,
                         log_field,
+                        ground_field,
                         tea_field,
                         ctx_tint!(ctx, Remembered { mist_colour }),
                         fb,

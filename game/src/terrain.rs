@@ -135,7 +135,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             coord.y as f64 * topography_spread,
         ))
     });
-    let padding = 35;
+    let padding = 30;
     let cabin_coord = topography_grid
         .enumerate()
         .filter_map(|(coord, &f)| {
@@ -287,9 +287,10 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     world.spawn_ruins_floor(out_coord, *topography_grid.get_checked(out_coord));
                 }
                 '?' => {
-                    world.spawn_ruins_floor(out_coord, *topography_grid.get_checked(out_coord));
+                    world.spawn_ground(out_coord, *topography_grid.get_checked(out_coord));
                     world.spawn_altar(out_coord);
                 }
+                ' ' => (),
                 other => panic!("unexpected char {}", other),
             }
         }
@@ -314,8 +315,8 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             .ok_or("no lamp coord")?;
         lamp_coords.push(coord);
         world.spawn_lamp(coord);
-        *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 1)) = true;
-        *no_trees.get_checked_mut(lamp_coord + Coord::new(0, 2)) = true;
+        *no_trees.get_checked_mut(coord + Coord::new(0, 1)) = true;
+        *no_trees.get_checked_mut(coord + Coord::new(0, 2)) = true;
     }
     let lake_direction = rng.gen::<CardinalDirection>();
     let lake_mid = (size.to_coord().unwrap() / 2)
@@ -378,7 +379,14 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     coord.y as f64 * tree_chance_spread,
                 ));
                 if rng.gen::<f64>() < (noise - (count as f64 / 10.)) {
-                    world.spawn_grass(coord);
+                    if world
+                        .spatial_table
+                        .layers_at_checked(coord)
+                        .feature
+                        .is_none()
+                    {
+                        world.spawn_grass(coord);
+                    }
                 }
             }
             *no_trees.get_checked_mut(coord) = true;
@@ -394,7 +402,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 && coord.x < size.x() as i32 - padding
                 && coord.y < size.y() as i32 - padding
                 && coord.manhattan_distance(cabin_coord) > 20
-                && coord.manhattan_distance(ruins_coord) > 20
+                && coord.manhattan_distance(ruins_coord) > 30
                 && f > 0.65
             {
                 Some(coord)
@@ -502,7 +510,14 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     coord.y as f64 * tree_chance_spread,
                 ));
                 if (noise < 0.4 && rng.gen::<f64>() * 0.8 > noise) || rng.gen::<f64>() < 0.1 {
-                    world.spawn_grass(coord);
+                    if world
+                        .spatial_table
+                        .layers_at_checked(coord)
+                        .feature
+                        .is_none()
+                    {
+                        world.spawn_grass(coord);
+                    }
                 } else {
                     let layers = world.spatial_table.layers_at_checked(coord);
                     if layers.item.is_none() && layers.feature.is_none() {

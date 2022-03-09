@@ -50,6 +50,10 @@ pub enum TopographyCell {
     Water,
     Unknown,
     Player,
+    Ruins,
+    Flowers,
+    Tea,
+    Cabin,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -254,17 +258,48 @@ impl Game {
     }
 
     pub fn topography_grid(&self) -> Grid<TopographyCell> {
+        let mut flowers = false;
+        let mut tea = false;
         Grid::new_fn(self.world_size(), |coord| {
-            if let Some(character) = self.world.spatial_table.layers_at_checked(coord).character {
+            let layers = self.world.spatial_table.layers_at_checked(coord);
+            if let Some(character) = layers.character {
                 if self.world.components.player.contains(character) {
                     return TopographyCell::Player;
                 }
             }
-            if let Some(floor) = self.world.spatial_table.layers_at_checked(coord).floor {
-                if let Some(&height) = self.world.components.height.get(floor) {
-                    TopographyCell::Height(height)
-                } else if self.world.components.lake.contains(floor) {
+            if let Some(feature) = layers.feature {
+                if let Some(tile) = self.world.components.tile.get(feature) {
+                    match tile {
+                        Tile::Altar => return TopographyCell::Ruins,
+                        Tile::Bed => return TopographyCell::Cabin,
+                        _ => (),
+                    }
+                }
+            }
+            if let Some(item) = layers.item {
+                if let Some(tile) = self.world.components.tile.get(item) {
+                    match tile {
+                        Tile::Tea => {
+                            if !tea {
+                                tea = true;
+                                return TopographyCell::Tea;
+                            }
+                        }
+                        Tile::Flower => {
+                            if !flowers {
+                                flowers = true;
+                                return TopographyCell::Flowers;
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            if let Some(floor) = layers.floor {
+                if self.world.components.water.contains(floor) {
                     TopographyCell::Water
+                } else if let Some(&height) = self.world.components.height.get(floor) {
+                    TopographyCell::Height(height)
                 } else {
                     TopographyCell::Unknown
                 }
@@ -438,6 +473,11 @@ impl Game {
             if let Some(layers) = self.world.spatial_table.layers_at(destination) {
                 if layers.feature.is_some() {
                     break (running.into_witness(), Ok(()));
+                }
+                if let Some(floor) = layers.floor {
+                    if self.world.components.lake.contains(floor) {
+                        break (running.into_witness(), Ok(()));
+                    }
                 }
             }
             let (witness, result) = self.player_walk_inner(direction, running);

@@ -43,6 +43,7 @@ impl World {
             .unwrap();
         self.components.tile.insert(entity, Tile::Ground);
         self.components.height.insert(entity, height);
+        self.components.ground.insert(entity, ());
         entity
     }
 
@@ -171,6 +172,7 @@ impl World {
             .colour_hint
             .insert(entity, colour_range.choose(rng));
         self.components.realtime.insert(entity, ());
+        self.components.water.insert(entity, ());
     }
 
     pub fn spawn_ruins_floor(&mut self, coord: Coord, height: f64) -> Entity {
@@ -293,28 +295,7 @@ impl World {
                 },
             )
             .unwrap();
-        self.components.tile.insert(entity, Tile::Water);
-        let colour_range = UniformInclusiveRange {
-            low: Rgb24::new(10, 40, 100),
-            high: Rgb24::new(20, 90, 150),
-        };
-        self.realtime_components.flicker.insert(entity, {
-            use flicker::spec::*;
-            Flicker {
-                colour_hint: Some(colour_range),
-                light_colour: None,
-                tile: None,
-                until_next_event: UniformInclusiveRange {
-                    low: Duration::from_millis(200),
-                    high: Duration::from_millis(1000),
-                },
-            }
-            .build(rng)
-        });
-        self.components
-            .colour_hint
-            .insert(entity, colour_range.choose(rng));
-        self.components.realtime.insert(entity, ());
+        self.become_water(entity, rng);
         self.components.lake.insert(entity, ());
         entity
     }

@@ -1,3 +1,5 @@
+use crate::colour;
+use chargrid::prelude::*;
 use grid_2d::{Coord, Grid, Size};
 use rand::{
     distributions::{uniform::Uniform, Distribution},
@@ -27,24 +29,55 @@ impl TeaField {
 }
 
 #[derive(Serialize, Deserialize)]
+struct GroundCell {
+    fg: Rgb24,
+    bg: Rgb24,
+    ch: char,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct GroundField {
-    grid: Grid<Rgb24>,
+    grid: Grid<GroundCell>,
 }
 
 impl GroundField {
-    fn choose<R: Rng>(rng: &mut R) -> Rgb24 {
+    fn choose<R: Rng>(coord: Coord, rng: &mut R) -> GroundCell {
         let r = Uniform::<u8>::new_inclusive(40, 90).sample(rng);
         let g = Uniform::<u8>::new_inclusive(80, 120).sample(rng);
         let b = Uniform::<u8>::new_inclusive(0, 30).sample(rng);
-        Rgb24 { r, g, b }
+        let colour = Rgb24 { r, g, b };
+        let (ch, fg, bg) = if coord.x % 3 == 1 && coord.y % 3 == 1 {
+            ('▪', colour, colour.saturating_scalar_mul_div(1, 5))
+        } else {
+            (
+                *[' ', ' ', ' ', ' ', '`', ',', '\'', ';']
+                    .choose(rng)
+                    .unwrap(),
+                colour.saturating_scalar_mul_div(1, 2),
+                colour.saturating_scalar_mul_div(1, 5),
+            )
+        };
+        GroundCell { fg, bg, ch }
     }
     pub fn new<R: Rng>(size: Size, rng: &mut R) -> Self {
         Self {
-            grid: Grid::new_fn(size, |_| Self::choose(rng)),
+            grid: Grid::new_fn(size * 3, |coord| Self::choose(coord, rng)),
         }
     }
-    pub fn get(&self, coord: Coord) -> Option<Rgb24> {
-        self.grid.get(coord).cloned()
+    pub fn render(&self, coord: Coord, ctx: Ctx, fb: &mut FrameBuffer) {
+        let base_coord = coord * 3;
+        for offset in Size::new_u16(3, 3).coord_iter_row_major() {
+            let cell = self.grid.get(base_coord + offset).unwrap();
+            fb.set_cell_relative_to_ctx(
+                ctx,
+                offset,
+                0,
+                RenderCell::default()
+                    .with_character(cell.ch)
+                    .with_foreground(cell.fg.to_rgba32(255))
+                    .with_background(cell.bg.to_rgba32(255)),
+            );
+        }
     }
 }
 

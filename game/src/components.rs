@@ -18,11 +18,13 @@ declare_entity_module! {
         realtime: (),
         bulletin_board: (),
         lake: (),
+        water: (),
         grass: (),
         lamp: (),
         house_light: (),
         bed: (),
         height: f64,
+        ground: (),
     }
 }
 pub use components::Components;

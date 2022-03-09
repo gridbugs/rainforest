@@ -29,11 +29,7 @@ pub fn render_3x3_from_visibility(
             }
         }
         Tile::Floor => floor(ctx, fb),
-        Tile::Ground => {
-            ground_field
-                .get(world_coord)
-                .map(|rgb24| ground(rgb24, ctx, fb));
-        }
+        Tile::Ground => ground_field.render(world_coord, ctx, fb),
         Tile::Player => player(ctx, fb),
         Tile::Tree0 => tree0(ctx, fb),
         Tile::Tree1 => tree1(ctx, fb),
@@ -100,6 +96,7 @@ pub fn render_3x3_from_visibility_remembered(
     visibility_cell: &VisibilityCell,
     game: &Game,
     log_field: &LogField,
+    ground_field: &GroundField,
     tea_field: &TeaField,
     ctx: Ctx,
     fb: &mut FrameBuffer,
@@ -115,7 +112,7 @@ pub fn render_3x3_from_visibility_remembered(
             }
         }
         Tile::Floor => floor(ctx, fb),
-        Tile::Ground => ground(Rgb24::new_grey(10), ctx, fb),
+        Tile::Ground => ground_field.render(world_coord, ctx, fb),
         Tile::Tree0 => tree0(ctx, fb),
         Tile::Tree1 => tree1(ctx, fb),
         Tile::Tree2 => tree2(ctx, fb),
@@ -191,27 +188,6 @@ fn floor(ctx: Ctx, fb: &mut FrameBuffer) {
         RenderCell::default()
             .with_character('▪')
             .with_foreground(colour::FLOOR_FOREGROUND),
-    );
-}
-
-fn ground(foreground: Rgb24, ctx: Ctx, fb: &mut FrameBuffer) {
-    for offset in Size::new_u16(3, 3).coord_iter_row_major() {
-        fb.set_cell_relative_to_ctx(
-            ctx,
-            offset,
-            0,
-            RenderCell::default()
-                .with_character(' ')
-                .with_background(colour::GROUND_BACKGROUND),
-        );
-    }
-    fb.set_cell_relative_to_ctx(
-        ctx,
-        Coord { x: 1, y: 1 },
-        0,
-        RenderCell::default()
-            .with_character('▪')
-            .with_foreground(foreground.to_rgba32(255)),
     );
 }
 

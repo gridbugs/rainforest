@@ -182,6 +182,7 @@ impl World {
             .components
             .height
             .iter()
+            .filter(|(a, _)| self.components.ground.contains(*a))
             .map(|(a, &b)| (a, b))
             .collect::<Vec<_>>();
         entities_by_height.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
