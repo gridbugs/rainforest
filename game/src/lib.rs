@@ -16,10 +16,12 @@ mod visibility;
 pub mod witness;
 mod world;
 
-pub use components::{DoorState, Tile};
+use components::EntityData;
+pub use components::{DoorState, Item, Tile};
 pub use entity_table::Entity;
 use realtime::AnimationContext;
 pub use spatial::Layer;
+use spatial::Location;
 use terrain::Terrain;
 pub use visibility::{CellVisibility, EntityTile, Omniscient, VisibilityCell, VisibilityGrid};
 use witness::Witness;
@@ -45,8 +47,20 @@ impl ActionError {
 }
 
 mod motivation {
+    use super::RainLevel;
+
     pub const SLEEP: i32 = 400;
     pub const LAKE: i32 = 1000;
+    pub const TEA: i32 = 500;
+    pub const FLOWER: i32 = 500;
+
+    pub fn chair(rain_level: RainLevel) -> i32 {
+        match rain_level {
+            RainLevel::Light => 250,
+            RainLevel::Medium => 500,
+            RainLevel::Heavy => 1000,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -56,6 +70,8 @@ pub enum MotivationModifier {
     UnderTree,
     InFloodWater,
     Tired,
+    OnSteppingStone,
+    InTheDark,
 }
 
 impl MotivationModifier {
@@ -65,9 +81,11 @@ impl MotivationModifier {
             Self::OutsideInRain(RainLevel::Light) => -1,
             Self::OutsideInRain(RainLevel::Medium) => -2,
             Self::OutsideInRain(RainLevel::Heavy) => -3,
-            Self::UnderTree => 1,
-            Self::InFloodWater => -5,
-            Self::Tired => -2,
+            Self::UnderTree => 2,
+            Self::InFloodWater => -20,
+            Self::OnSteppingStone => 20,
+            Self::Tired => -5,
+            Self::InTheDark => -10,
         }
     }
 
@@ -79,7 +97,9 @@ impl MotivationModifier {
             Self::OutsideInRain(RainLevel::Heavy) => "Outside in Heavy Rain",
             Self::UnderTree => "Under a Tree",
             Self::InFloodWater => "In Flood Water",
+            Self::OnSteppingStone => "On Stepping Stone",
             Self::Tired => "Tired",
+            Self::InTheDark => "In the Dark",
         }
         .to_string()
     }
@@ -204,9 +224,12 @@ impl Time {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 struct MotivationFlags {
     lake: bool,
+    chair: bool,
+    tea: bool,
+    flower: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -224,6 +247,8 @@ pub struct Game {
     motivation: i32,
     last_motivation_modifiers: Vec<MotivationModifier>,
     motivation_flags: MotivationFlags,
+    player_item: Option<EntityData>,
+    player_lantern: bool,
 }
 
 impl Game {
@@ -250,7 +275,9 @@ impl Game {
             last_sleep: None,
             motivation: Self::INITIAL_MOTIVATION,
             last_motivation_modifiers: Vec::new(),
-            motivation_flags: MotivationFlags { lake: true },
+            motivation_flags: MotivationFlags::default(),
+            player_item: None,
+            player_lantern: false,
         };
         game.after_turn(0, config);
         game.update_motivation();
@@ -376,7 +403,7 @@ impl Game {
         self.motivation
     }
 
-    fn update_motivation(&mut self) {
+    fn update_motivation_mod(&mut self) {
         let player_coord = self.player_coord();
         self.last_motivation_modifiers.clear();
         self.last_motivation_modifiers
@@ -392,6 +419,10 @@ impl Game {
         if self.is_player_in_flood_water() {
             self.last_motivation_modifiers
                 .push(MotivationModifier::InFloodWater);
+            if self.is_player_on_stepping_stone() {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::OnSteppingStone);
+            }
         }
         if let Some(last_sleep) = self.last_sleep {
             if self.time.seconds - last_sleep > 3600 * 20 {
@@ -404,6 +435,16 @@ impl Game {
                     .push(MotivationModifier::Tired);
             }
         }
+        if let Some(cell) = self.visibility_grid.get_cell(player_coord) {
+            if cell.light_colour().max_channel() < 112 {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::InTheDark);
+            }
+        }
+    }
+
+    fn update_motivation(&mut self) {
+        self.update_motivation_mod();
         for m in &self.last_motivation_modifiers {
             self.motivation += m.value();
         }
@@ -445,6 +486,25 @@ impl Game {
         false
     }
 
+    fn is_player_on_stepping_stone(&self) -> bool {
+        let player_coord = self.player_coord();
+        let cell = self.world.spatial_table.layers_at_checked(player_coord);
+        if let Some(floor) = cell.floor {
+            if self.world.components.water.contains(floor) {
+                if let Some(item) = cell.item {
+                    if self.world.components.rock.contains(item) {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    pub fn player_item(&self) -> Option<Item> {
+        self.player_item.as_ref().map(|i| i.item.unwrap())
+    }
+
     pub fn tick(
         &mut self,
         _since_previous: Duration,
@@ -465,7 +525,7 @@ impl Game {
         } else if !old_time.is_night() && self.time.is_night() {
             self.world.turn_lamps_on();
         }
-        let (player_light_colour, player_light_distance) = match self.time.hour() {
+        let (mut player_light_colour, mut player_light_distance) = match self.time.hour() {
             0 => (Rgb24::new(64, 64, 80), 25),
             1 => (Rgb24::new(64, 64, 80), 25),
             2 => (Rgb24::new(64, 64, 80), 25),
@@ -492,6 +552,12 @@ impl Game {
             23 => (Rgb24::new(80, 80, 80), 25),
             _ => panic!(),
         };
+        if self.player_lantern {
+            player_light_colour = player_light_colour.saturating_add(World::LANTERN_LIGHT.colour);
+            if player_light_distance < World::LANTERN_LIGHT.vision_distance.distance_squared() {
+                player_light_distance = World::LANTERN_LIGHT.vision_distance.distance_squared();
+            }
+        }
         {
             let light = self
                 .world
@@ -507,7 +573,7 @@ impl Game {
         self.world
             .flood(self.num_flooded.floor() as usize, &mut self.rng);
         if old_time.day() != self.time.day() {
-            self.motivation_flags.lake = false;
+            self.motivation_flags = MotivationFlags::default();
         }
         for _ in 0..(time_delta / Self::TURN_TIME) {
             self.update_motivation();
@@ -536,6 +602,89 @@ impl Game {
                 }
             }
             if let Some(feature) = layers.feature {
+                if self.world.components.chair.contains(feature) {
+                    if self.motivation_flags.chair {
+                        return (
+                            running.prompt(format!("You've already sat in your chair today.")),
+                            Ok(()),
+                        );
+                    } else {
+                        self.motivation_flags.chair = true;
+                        self.motivation += motivation::chair(self.rain_level());
+                        let level = match self.rain_level() {
+                            RainLevel::Light => "light",
+                            RainLevel::Medium => "medium",
+                            RainLevel::Heavy => "heavy",
+                        };
+                        return (running.prompt(format!("You get comfortable in the cozy chair and enjoy the {} rain.\n\nMotivation increased by {}.", level, motivation::chair(self.rain_level()))), Ok(()));
+                    }
+                }
+                if self.world.components.altar.contains(feature) {
+                    if let Some(item) = self.player_item.as_ref() {
+                        if item.item.unwrap() == Item::Flower {
+                            if self.motivation_flags.flower {
+                                return (
+                                    running.prompt(format!(
+                                        "You've already placed a flower here today."
+                                    )),
+                                    Ok(()),
+                                );
+                            } else {
+                                self.player_item = None;
+                                self.motivation_flags.flower = true;
+                                self.motivation += motivation::FLOWER;
+                                return (running.prompt(format!("You place a flower on the long-abandoned altar.\n\nMotivation increased by {}.", motivation::FLOWER)), Ok(()));
+                            }
+                        } else {
+                            return (
+                                running.prompt(format!("An altar. You could leave an offering...")),
+                                Ok(()),
+                            );
+                        }
+                    } else {
+                        return (
+                            running.prompt(format!("An altar. You could leave an offering...")),
+                            Ok(()),
+                        );
+                    }
+                }
+                if self.world.components.tea_pot.contains(feature) {
+                    if let Some(item) = self.player_item.as_ref() {
+                        if item.item.unwrap() == Item::Tea {
+                            if self.motivation_flags.tea {
+                                return (
+                                    running.prompt(format!("You've already had tea today!")),
+                                    Ok(()),
+                                );
+                            } else {
+                                self.player_item = None;
+                                self.motivation_flags.tea = true;
+                                self.motivation += motivation::TEA;
+                                return (running.prompt(format!("Mmm...a nice relaxing cup of tea.\n\nMotivation increased by {}.", motivation::TEA)), Ok(()));
+                            }
+                        } else {
+                            return (
+                                running.prompt(format!(
+                                "A teapot. You could make tea, if only you had some tea leaves..."
+                            )),
+                                Ok(()),
+                            );
+                        }
+                    } else {
+                        return (
+                            running.prompt(format!(
+                                "A teapot. You could make tea, if only you had some tea leaves..."
+                            )),
+                            Ok(()),
+                        );
+                    }
+                }
+                if self.world.components.bulletin_board.contains(feature) {
+                    return (
+                        running.prompt(format!("\"Enjoy your stay in our cabin!\"")),
+                        Ok(()),
+                    );
+                }
                 if self.world.components.bed.contains(feature) {
                     if let Some(last_sleep) = self.last_sleep {
                         if self.time.seconds - last_sleep < 8 * 3600 {
@@ -664,7 +813,7 @@ impl Game {
     pub fn player_wait_long(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(3600, config);
         if self.motivation <= 0 {
-            //return Witness::GameOver;
+            return Witness::GameOver;
         }
         running.into_witness()
     }
@@ -673,11 +822,99 @@ impl Game {
         let motivation = self.motivation;
         self.after_turn(3600 * 8, config);
         self.last_sleep = Some(self.time.seconds);
+        self.update_motivation_mod();
         self.motivation = motivation; // don't lose motivation while asleep
         self.motivation += motivation::SLEEP;
         sleep.prompt(format!(
             "You sleep for 8 hours.\n\nMotivation increased by {}.",
             motivation::SLEEP
         ))
+    }
+
+    pub fn player_get(
+        &mut self,
+        config: &Config,
+        running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        let player_coord = self
+            .world
+            .spatial_table
+            .coord_of(self.player)
+            .expect("can't get coord of player");
+        let ret = if let Some(item) = self
+            .world
+            .spatial_table
+            .layers_at_checked(player_coord)
+            .item
+        {
+            let item_data = self.world.components.remove_entity_data(item);
+            self.world.spatial_table.remove(item);
+            let message = if let Some(current_item) = self.player_item.take() {
+                let current_item_item = current_item.item.unwrap();
+                let entity = self.world.entity_allocator.alloc();
+                self.world
+                    .components
+                    .insert_entity_data(entity, current_item);
+                let _ = self.world.spatial_table.update(
+                    entity,
+                    Location {
+                        coord: player_coord,
+                        layer: Some(Layer::Item),
+                    },
+                );
+                format!(
+                    "You put down the {} and pick up the {}.",
+                    current_item_item.to_string(),
+                    item_data.item.unwrap().to_string()
+                )
+            } else {
+                format!("You pick up the {}.", item_data.item.unwrap().to_string())
+            };
+            self.player_item = Some(item_data);
+            (running.prompt(message), Ok(()))
+        } else {
+            if let Some(current_item) = self.player_item.take() {
+                let item = current_item.item.unwrap();
+                let entity = self.world.entity_allocator.alloc();
+                self.world
+                    .components
+                    .insert_entity_data(entity, current_item);
+                let _ = self.world.spatial_table.update(
+                    entity,
+                    Location {
+                        coord: player_coord,
+                        layer: Some(Layer::Item),
+                    },
+                );
+                (
+                    running.prompt(format!("You put down the {}.", item.to_string())),
+                    Ok(()),
+                )
+            } else {
+                return (
+                    running.into_witness(),
+                    ActionError::err_msg("There is no item here!"),
+                );
+            }
+        };
+        self.after_turn(Self::TURN_TIME, config);
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
+        }
+        ret
+    }
+
+    pub fn player_toggle_lantern(
+        &mut self,
+        config: &Config,
+        running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        self.player_lantern = !self.player_lantern;
+        self.after_turn(0, config);
+        self.update_motivation_mod(); // remove the "InTheDark" modifier
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
+        }
+        (running.into_witness(), Ok(()))
     }
 }

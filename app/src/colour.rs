@@ -43,3 +43,5 @@ pub const MAP_BACKGROUND: Rgba32 = Rgba32::hex_rgb(0xceb168);
 pub const MAP_FOREGROUND: Rgba32 = Rgba32::new_rgb(0, 0, 0);
 pub const WEATHER_REPORT_BACKGROUND: Rgba32 = Rgba32::new_grey(185);
 pub const WEATHER_REPORT_FOREGROUND: Rgba32 = Rgba32::new_rgb(0, 0, 0);
+pub const LANTERN_HANDLE: Rgba32 = Rgba32::new_rgb(255, 255, 255);
+pub const LANTERN_LIGHT: Rgba32 = Rgba32::new_rgb(255, 255, 0);

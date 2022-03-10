@@ -74,6 +74,7 @@ pub fn render_3x3_from_visibility(
         Tile::Shovel => shovel(ctx, fb),
         Tile::Map => map(ctx, fb),
         Tile::WeatherReport => weather_report(ctx, fb),
+        Tile::Lantern => lantern(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -154,6 +155,7 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::Shovel => shovel(ctx, fb),
         Tile::Map => map(ctx, fb),
         Tile::WeatherReport => weather_report(ctx, fb),
+        Tile::Lantern => lantern(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -1723,5 +1725,89 @@ fn weather_report(ctx: Ctx, fb: &mut FrameBuffer) {
         RenderCell::default()
             .with_character('▘')
             .with_foreground(colour::WEATHER_REPORT_BACKGROUND),
+    );
+}
+
+fn lantern(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 0),
+        0,
+        RenderCell::default()
+            .with_character('┌')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('─')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 0),
+        0,
+        RenderCell::default()
+            .with_character('┐')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 1),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('☼')
+            .without_background()
+            .with_foreground(colour::LANTERN_LIGHT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 1),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(0, 2),
+        0,
+        RenderCell::default()
+            .with_character('└')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('▀')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 2),
+        0,
+        RenderCell::default()
+            .with_character('┘')
+            .without_background()
+            .with_foreground(colour::LANTERN_HANDLE),
     );
 }

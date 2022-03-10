@@ -1,5 +1,5 @@
 use crate::{
-    components::EntityData,
+    components::{EntityData, Equipment},
     spatial::{Layer, Location},
     world::World,
 };
@@ -57,6 +57,10 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
                 '5' => {
                     world.spawn_floor(coord, 0.);
                     world.spawn_weather_report(coord);
+                }
+                '6' => {
+                    world.spawn_floor(coord, 0.);
+                    world.spawn_lantern(coord);
                 }
                 '&' => {
                     world.spawn_ground(coord, 0.);
@@ -531,12 +535,61 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         }
         world.spawn_ground(coord, *topography_grid.get_checked(coord));
     }
-    let num_rocks = 60;
+    let num_rocks = 100;
     if rock_candidates.len() < num_rocks {
         return Err("not enough rock rock candidate");
     }
     for &coord in rock_candidates.choose_multiple(rng, num_rocks) {
         world.spawn_rock(coord);
+    }
+    let mut equipment_candidates = Vec::new();
+    for coord in size.coord_iter_row_major() {
+        let cell = world.spatial_table.layers_at_checked(coord);
+        if cell.feature.is_none() && cell.item.is_none() && cell.character.is_none() {
+            if let Some(floor) = cell.floor {
+                if world.components.ground.contains(floor) {
+                    if coord.manhattan_distance(cabin_coord) > 50 {
+                        equipment_candidates.push(coord);
+                    }
+                }
+            }
+        }
+    }
+    equipment_candidates.shuffle(rng);
+    let mut equipment_candidates_spread: Vec<Coord> = Vec::new();
+    'outer: for &coord in &equipment_candidates {
+        for &existing in &equipment_candidates_spread {
+            if existing.manhattan_distance(coord) < 20 {
+                continue 'outer;
+            }
+        }
+        equipment_candidates_spread.push(coord);
+    }
+    let num_equipment = 6;
+    if equipment_candidates_spread.len() < num_equipment {
+        return Err("not enough equipment candidates");
+    }
+    let equipment_types = vec![
+        Equipment::Umbrella,
+        Equipment::Shovel,
+        Equipment::Lantern,
+        Equipment::Gumboots,
+        Equipment::WeatherReport,
+        Equipment::Map,
+    ];
+    for (coord, equipment) in equipment_candidates_spread
+        .into_iter()
+        .take(6)
+        .zip(equipment_types.into_iter())
+    {
+        match equipment {
+            Equipment::Umbrella => world.spawn_umbrella(coord),
+            Equipment::Shovel => world.spawn_shovel(coord),
+            Equipment::Lantern => world.spawn_lantern(coord),
+            Equipment::Gumboots => world.spawn_gumboots(coord),
+            Equipment::WeatherReport => world.spawn_weather_report(coord),
+            Equipment::Map => world.spawn_map(coord),
+        };
     }
     Ok(Terrain { world, player })
 }

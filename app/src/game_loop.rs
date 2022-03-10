@@ -14,7 +14,7 @@ use chargrid::{
 use grid_2d::Grid;
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
-    ActionError, Config as GameConfig, Game, RainLevel, RainSchedule, TopographyCell,
+    ActionError, Config as GameConfig, Game, Item, RainLevel, RainSchedule, TopographyCell,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -182,11 +182,19 @@ impl GameInstance {
         weather.render(&(), ctx.add_xy(67, 1), fb);
     }
     fn render_bottom_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-        StyledString::plain_text(format!("Motivation: {}", self.game.motivation())).render(
-            &(),
-            ctx.add_y(0),
-            fb,
-        );
+        let motivation = self.game.motivation();
+        let motivation_colour = if motivation < 200 {
+            Rgba32::new_rgb(255, 0, 0)
+        } else {
+            Rgba32::new_grey(255)
+        };
+        StyledString {
+            string: format!("Motivation: {}", motivation),
+            style: Style::plain_text()
+                .with_bold(true)
+                .with_foreground(motivation_colour),
+        }
+        .render(&(), ctx.add_y(2), fb);
         let motivation_modifiers = self
             .game
             .last_motivation_modifiers()
@@ -203,12 +211,27 @@ impl GameInstance {
             .iter()
             .map(|m| m.value())
             .sum();
-        StyledString::plain_text(format!(
-            "Motivation Change: {} = {}",
-            motivation_change, motivation_modifiers
-        ))
+        StyledString {
+            string: format!(
+                "Motivation Change: {} = {}",
+                motivation_change, motivation_modifiers
+            ),
+            style: Style::plain_text().with_foreground(Rgba32::new_grey(185)),
+        }
         .wrap_word()
-        .render(&(), ctx.add_y(1), fb);
+        .render(&(), ctx.add_y(0), fb);
+        let item_str = match self.game.player_item() {
+            None => "(nothing)",
+            Some(Item::Flower) => "a flower (drop with g)",
+            Some(Item::Tea) => "some tea leaves (drop with g)",
+            Some(Item::Rock) => "a rock (drop with g)",
+        };
+        StyledString {
+            string: (format!("Holding: {}", item_str)),
+            style: Style::plain_text().with_bold(true),
+        }
+        .wrap_word()
+        .render(&(), ctx.add_y(3), fb);
     }
 }
 
@@ -319,6 +342,9 @@ impl GameLoopData {
         }
         if let Some(top_text) = self.examine_message.as_ref() {
             top_text.clone().wrap_word().render(&(), ctx.add_x(1), fb);
+        } else if let Some(mut here) = examine::examine_under_player(self.game()) {
+            here.string = format!("Here: {}", here.string);
+            here.wrap_word().render(&(), ctx.add_x(1), fb);
         }
     }
 
@@ -351,6 +377,7 @@ impl GameLoopData {
         let witness = match event {
             Event::Input(input) => {
                 if let Some(app_input) = self.controls.get(input) {
+                    self.cursor = None;
                     let (witness, action_result) = match app_input {
                         AppInput::Direction(direction) => {
                             instance
@@ -368,7 +395,10 @@ impl GameLoopData {
                             instance.game.player_wait_long(&self.game_config, running),
                             Ok(()),
                         ),
-                        AppInput::Get => (running.into_witness(), Ok(())),
+                        AppInput::Get => instance.game.player_get(&self.game_config, running),
+                        AppInput::Lantern => instance
+                            .game
+                            .player_toggle_lantern(&self.game_config, running),
                         AppInput::Map => return GameLoopState::Map(running),
                         AppInput::WeatherReport => return GameLoopState::WeatherReport(running),
                         AppInput::Examine => {
@@ -538,7 +568,7 @@ impl Component for WeatherReportComponent {
             "Day 1", "Day 2", "Day 3", "Day 4", "Day 5",
         ))
         .render(&(), ctx, fb);
-        let mut line = move |name: &str, time| {
+        let mut line = |name: &str, time| {
             ctx = ctx.add_y(1);
             StyledString::plain_text(format!(
                 "--------------+{:-^11}+{:-^11}+{:-^11}+{:-^11}+{:-^11}+",
@@ -575,6 +605,16 @@ impl Component for WeatherReportComponent {
         line("12:00 - 16:00", 3);
         line("16:00 - 20:00", 4);
         line("20:00 - 00:00", 5);
+        StyledString::plain_text(format!(
+            "              |{:^11}|{:^11}|{:^11}|{:^11}|{:^11}|",
+            "", "", "", "", ""
+        ))
+        .render(&(), ctx, fb);
+        StyledString::plain_text(format!(
+            "--------------+{:-^11}+{:-^11}+{:-^11}+{:-^11}+{:-^11}+",
+            "", "", "", "", ""
+        ))
+        .render(&(), ctx.add_y(1), fb);
     }
 
     fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {

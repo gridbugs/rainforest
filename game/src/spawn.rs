@@ -1,5 +1,5 @@
 use crate::{
-    components::{DoorState, Tile},
+    components::{DoorState, Equipment, Item, Tile},
     realtime::flicker,
     spatial::{Layer, Location},
     visibility::Light,
@@ -222,6 +222,7 @@ impl World {
             .unwrap();
         self.components.tile.insert(entity, Tile::Altar);
         self.components.solid.insert(entity, ());
+        self.components.altar.insert(entity, ());
         entity
     }
 
@@ -330,6 +331,8 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Rock);
+        self.components.item.insert(entity, Item::Rock);
+        self.components.rock.insert(entity, ());
         entity
     }
 
@@ -345,6 +348,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Flower);
+        self.components.item.insert(entity, Item::Flower);
         entity
     }
 
@@ -375,6 +379,8 @@ impl World {
                 },
             )
             .unwrap();
+        self.components.solid.insert(entity, ());
+        self.components.chair.insert(entity, ());
         self.components.tile.insert(entity, Tile::ChairLeftFacing);
         entity
     }
@@ -391,6 +397,8 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::ChairRightFacing);
+        self.components.solid.insert(entity, ());
+        self.components.chair.insert(entity, ());
         entity
     }
 
@@ -406,6 +414,8 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Teapot);
+        self.components.tea_pot.insert(entity, ());
+        self.components.solid.insert(entity, ());
         entity
     }
 
@@ -421,6 +431,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Tea);
+        self.components.item.insert(entity, Item::Tea);
         entity
     }
 
@@ -436,6 +447,9 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Gumboots);
+        self.components
+            .equipment
+            .insert(entity, Equipment::Gumboots);
         entity
     }
 
@@ -451,6 +465,9 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Umbrella);
+        self.components
+            .equipment
+            .insert(entity, Equipment::Umbrella);
         entity
     }
 
@@ -466,6 +483,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Shovel);
+        self.components.equipment.insert(entity, Equipment::Shovel);
         entity
     }
 
@@ -481,6 +499,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Map);
+        self.components.equipment.insert(entity, Equipment::Map);
         entity
     }
 
@@ -496,6 +515,35 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::WeatherReport);
+        self.components
+            .equipment
+            .insert(entity, Equipment::WeatherReport);
+        entity
+    }
+
+    pub const LANTERN_LIGHT: Light = Light {
+        colour: Rgb24::new(255, 255, 185),
+        vision_distance: Circle::new_squared(18),
+        diminish: Rational {
+            numerator: 1,
+            denominator: 10,
+        },
+    };
+
+    pub fn spawn_lantern(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Lantern);
+        self.components.equipment.insert(entity, Equipment::Lantern);
+        self.components.light.insert(entity, Self::LANTERN_LIGHT);
         entity
     }
 }

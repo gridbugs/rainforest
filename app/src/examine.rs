@@ -77,6 +77,31 @@ fn tile_str(tile: Tile) -> Option<TileLabel> {
         Tile::Shovel => TileLabel::Name("a shovel"),
         Tile::Map => TileLabel::Name("a topographic map of the forest"),
         Tile::WeatherReport => TileLabel::Name("this week's weather report"),
+        Tile::Lantern => TileLabel::Name("a portable lantern"),
     };
     Some(label)
+}
+
+pub fn examine_under_player(game: &Game) -> Option<StyledString> {
+    let coord = game.player_coord();
+    let mut entity_under_cursor = None;
+    let mut suffix = "";
+    if let Some(visibility_cell_under_cursor) = game.visibility_grid().get_cell(coord) {
+        if let Some(floor) = visibility_cell_under_cursor.tile_layers().floor {
+            entity_under_cursor = Some(floor.tile);
+        }
+        if let Some(feature) = visibility_cell_under_cursor.tile_layers().feature {
+            entity_under_cursor = Some(feature.tile);
+        }
+        if let Some(item) = visibility_cell_under_cursor.tile_layers().item {
+            suffix = " (pick up with 'g')";
+            entity_under_cursor = Some(item.tile);
+        }
+    }
+    entity_under_cursor.and_then(|tile| {
+        tile_str(tile).map(|label| match label {
+            TileLabel::Name(name) => StyledString::plain_text(format!("{}{}", name, suffix)),
+            TileLabel::Literal(literal) => StyledString::plain_text(literal.to_string()),
+        })
+    })
 }

@@ -27,6 +27,12 @@ declare_entity_module! {
         ground: (),
         tree: (),
         end_of_pier: (),
+        item: Item,
+        tea_pot: (),
+        altar: (),
+        chair: (),
+        rock: (),
+        equipment: Equipment,
     }
 }
 pub use components::Components;
@@ -66,6 +72,35 @@ pub enum Tile {
     Shovel,
     Map,
     WeatherReport,
+    Lantern,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Item {
+    Flower,
+    Tea,
+    Rock,
+}
+
+impl Item {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Flower => "flower",
+            Self::Tea => "tea",
+            Self::Rock => "rock",
+        }
+        .to_string()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Equipment {
+    Gumboots,
+    Umbrella,
+    Shovel,
+    Map,
+    WeatherReport,
+    Lantern,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

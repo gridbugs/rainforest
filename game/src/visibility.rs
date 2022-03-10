@@ -77,6 +77,9 @@ impl Default for VisibilityCell {
 }
 
 impl VisibilityCell {
+    pub(crate) fn light_colour(&self) -> Rgb24 {
+        self.light_colour
+    }
     pub fn tile_layers(&self) -> &TileLayers {
         &self.tile_layers
     }
