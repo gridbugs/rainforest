@@ -14,7 +14,7 @@ use chargrid::{
 use grid_2d::Grid;
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
-    ActionError, Config as GameConfig, Game, RainLevel, TopographyCell,
+    ActionError, Config as GameConfig, Game, RainLevel, RainSchedule, TopographyCell,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -218,6 +218,7 @@ pub enum GameLoopState {
     Playing(Witness),
     MainMenu,
     Map(witness::Running),
+    WeatherReport(witness::Running),
 }
 
 pub struct GameLoopData {
@@ -314,10 +315,10 @@ impl GameLoopData {
 
     fn render_text(&self, ctx: Ctx, fb: &mut FrameBuffer) {
         if let Some(context_message) = self.context_message.as_ref() {
-            context_message.render(&(), ctx.add_y(1), fb);
+            context_message.render(&(), ctx.add_xy(1, 1), fb);
         }
         if let Some(top_text) = self.examine_message.as_ref() {
-            top_text.clone().wrap_word().render(&(), ctx, fb);
+            top_text.clone().wrap_word().render(&(), ctx.add_x(1), fb);
         }
     }
 
@@ -369,7 +370,7 @@ impl GameLoopData {
                         ),
                         AppInput::Get => (running.into_witness(), Ok(())),
                         AppInput::Map => return GameLoopState::Map(running),
-                        AppInput::WeatherReport => (running.into_witness(), Ok(())),
+                        AppInput::WeatherReport => return GameLoopState::WeatherReport(running),
                         AppInput::Examine => {
                             return GameLoopState::Examine(running);
                         }
@@ -504,6 +505,97 @@ fn game_examine_component() -> CF<()> {
                 state.cursor = None;
             })
     })
+}
+
+fn weather_report_component() -> CF<()> {
+    on_state_then(|state: &mut State| {
+        state.context_message = Some(StyledString {
+            string: "Weather Report (escape/start to return to game)".to_string(),
+            style: Style::plain_text(),
+        });
+        let rain_schedule = state.game().rain_schedule();
+        state.examine_message = None;
+        boxed_cf(WeatherReportComponent(rain_schedule))
+            .catch_escape_or_start()
+            .map_val(|| ())
+            .side_effect(|state: &mut State| {
+                state.context_message = None;
+                state.cursor = None;
+            })
+    })
+}
+
+struct WeatherReportComponent(RainSchedule);
+impl Component for WeatherReportComponent {
+    type Output = Option<()>;
+    type State = GameLoopData;
+
+    fn render(&self, state: &Self::State, ctx: Ctx, fb: &mut FrameBuffer) {
+        state.render_text(ctx, fb);
+        let mut ctx = ctx.add_xy(1, 3);
+        StyledString::plain_text(format!(
+            "              |{:^11}|{:^11}|{:^11}|{:^11}|{:^11}|",
+            "Day 1", "Day 2", "Day 3", "Day 4", "Day 5",
+        ))
+        .render(&(), ctx, fb);
+        let mut line = move |name: &str, time| {
+            ctx = ctx.add_y(1);
+            StyledString::plain_text(format!(
+                "--------------+{:-^11}+{:-^11}+{:-^11}+{:-^11}+{:-^11}+",
+                "", "", "", "", ""
+            ))
+            .render(&(), ctx, fb);
+            ctx = ctx.add_y(1);
+            StyledString::plain_text(format!(
+                "              |{:^11}|{:^11}|{:^11}|{:^11}|{:^11}|",
+                "", "", "", "", ""
+            ))
+            .render(&(), ctx, fb);
+            ctx = ctx.add_y(1);
+            StyledString::plain_text(format!(
+                "{} |{:^11}|{:^11}|{:^11}|{:^11}|{:^11}|",
+                name,
+                self.0.get(1, time).to_string(),
+                self.0.get(2, time).to_string(),
+                self.0.get(3, time).to_string(),
+                self.0.get(4, time).to_string(),
+                self.0.get(5, time).to_string(),
+            ))
+            .render(&(), ctx, fb);
+            ctx = ctx.add_y(1);
+            StyledString::plain_text(format!(
+                "              |{:^11}|{:^11}|{:^11}|{:^11}|{:^11}|",
+                "", "", "", "", ""
+            ))
+            .render(&(), ctx, fb);
+        };
+        line("00:00 - 04:00", 0);
+        line("04:00 - 08:00", 1);
+        line("08:00 - 12:00", 2);
+        line("12:00 - 16:00", 3);
+        line("16:00 - 20:00", 4);
+        line("20:00 - 00:00", 5);
+    }
+
+    fn update(&mut self, state: &mut Self::State, _ctx: Ctx, event: Event) -> Self::Output {
+        match event {
+            Event::Input(input) => {
+                if let Some(app_input) = state.controls.get(input) {
+                    match app_input {
+                        AppInput::Map => return Some(()),
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        None
+    }
+
+    fn size(&self, _state: &Self::State, ctx: Ctx) -> Size {
+        ctx.bounding_box.size()
+    }
 }
 
 struct MapComponent(Grid<TopographyCell>);
@@ -894,6 +986,9 @@ pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
             .map_val(|| Playing(running.into_witness()))
             .continue_(),
         Map(running) => map_component()
+            .map_val(|| Playing(running.into_witness()))
+            .continue_(),
+        WeatherReport(running) => weather_report_component()
             .map_val(|| Playing(running.into_witness()))
             .continue_(),
         MainMenu => main_menu_loop().map(|main_menu_output| match main_menu_output {

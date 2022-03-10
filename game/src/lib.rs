@@ -115,8 +115,8 @@ impl RainLevel {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct RainSchedule {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RainSchedule {
     per_day: Vec<Vec<RainLevel>>,
 }
 
@@ -137,11 +137,15 @@ impl RainSchedule {
         Self { per_day }
     }
 
-    pub fn at_time(&self, time: Time) -> RainLevel {
+    fn at_time(&self, time: Time) -> RainLevel {
         self.per_day
             .get(time.day() as usize)
             .and_then(|a| a.get(time.hour() as usize / 4).cloned())
             .unwrap_or(RainLevel::Heavy)
+    }
+
+    pub fn get(&self, day: usize, time: usize) -> RainLevel {
+        self.per_day[day][time]
     }
 }
 
@@ -214,7 +218,7 @@ pub struct Game {
     animation_context: AnimationContext,
     time: Time,
     rain_schedule: RainSchedule,
-    num_flooded: usize,
+    num_flooded: f64,
     rng: Isaac64Rng,
     last_sleep: Option<u32>,
     motivation: i32,
@@ -241,7 +245,7 @@ impl Game {
             animation_context: AnimationContext::default(),
             time: Time::new(0, 23, 17, 30),
             rain_schedule: RainSchedule::new(&mut rng),
-            num_flooded: 0,
+            num_flooded: 0.,
             rng,
             last_sleep: None,
             motivation: Self::INITIAL_MOTIVATION,
@@ -310,6 +314,10 @@ impl Game {
                 },
             );
         }
+    }
+
+    pub fn rain_schedule(&self) -> RainSchedule {
+        self.rain_schedule.clone()
     }
 
     pub fn topography_grid(&self) -> Grid<TopographyCell> {
@@ -447,7 +455,7 @@ impl Game {
         running.into_witness()
     }
 
-    const FLOOD_STEP: usize = 400;
+    const FLOOD_STEP: usize = 1200;
 
     fn after_turn(&mut self, time_delta: u32, config: &Config) {
         let old_time = self.time;
@@ -495,9 +503,10 @@ impl Game {
             light.vision_distance =
                 shadowcast::vision_distance::Circle::new_squared(player_light_distance);
         }
+        self.num_flooded += (Self::FLOOD_STEP as f64 / 86400.) * time_delta as f64;
+        self.world
+            .flood(self.num_flooded.floor() as usize, &mut self.rng);
         if old_time.day() != self.time.day() {
-            self.num_flooded += Self::FLOOD_STEP;
-            self.world.flood(self.num_flooded, &mut self.rng);
             self.motivation_flags.lake = false;
         }
         for _ in 0..(time_delta / Self::TURN_TIME) {
@@ -655,7 +664,7 @@ impl Game {
     pub fn player_wait_long(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(3600, config);
         if self.motivation <= 0 {
-            return Witness::GameOver;
+            //return Witness::GameOver;
         }
         running.into_witness()
     }
