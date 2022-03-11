@@ -75,6 +75,7 @@ pub enum Witness {
     Sleep(Sleep),
     Prompt(Prompt),
     GameOver,
+    Win,
 }
 
 pub fn new_game<R: Rng>(config: &Config, base_rng: &mut R) -> (Game, Running) {

@@ -17,7 +17,7 @@ pub mod witness;
 mod world;
 
 use components::EntityData;
-pub use components::{DoorState, Item, Tile};
+pub use components::{DoorState, Equipment, Item, Tile};
 pub use entity_table::Entity;
 use realtime::AnimationContext;
 pub use spatial::Layer;
@@ -38,7 +38,7 @@ pub enum ActionError {
 }
 
 impl ActionError {
-    fn err_msg<T>(s: &str) -> Result<T, Self> {
+    pub fn err_msg<T>(s: &str) -> Result<T, Self> {
         Err(Self::Message(s.to_string()))
     }
     fn err_cant_walk_there<T>() -> Result<T, Self> {
@@ -46,19 +46,44 @@ impl ActionError {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+pub struct Equipped {
+    pub shovel: bool,
+    pub map: bool,
+    pub weather_report: bool,
+    pub umbrella: bool,
+    pub gumboots: bool,
+    pub crowbar: bool,
+    pub lantern: bool,
+}
+
+impl Equipped {
+    fn all() -> Self {
+        Equipped {
+            shovel: true,
+            map: true,
+            weather_report: true,
+            umbrella: true,
+            gumboots: true,
+            crowbar: true,
+            lantern: true,
+        }
+    }
+}
+
 mod motivation {
     use super::RainLevel;
 
-    pub const SLEEP: i32 = 400;
-    pub const LAKE: i32 = 1000;
-    pub const TEA: i32 = 500;
-    pub const FLOWER: i32 = 500;
+    pub const SLEEP: i32 = 250;
+    pub const LAKE: i32 = 250;
+    pub const TEA: i32 = 250;
+    pub const FLOWER: i32 = 250;
 
     pub fn chair(rain_level: RainLevel) -> i32 {
         match rain_level {
-            RainLevel::Light => 250,
-            RainLevel::Medium => 500,
-            RainLevel::Heavy => 1000,
+            RainLevel::Light => 125,
+            RainLevel::Medium => 250,
+            RainLevel::Heavy => 500,
         }
     }
 }
@@ -72,20 +97,26 @@ pub enum MotivationModifier {
     Tired,
     OnSteppingStone,
     InTheDark,
+    FlattenedGrass,
+    Gumboots,
+    Umbrella,
 }
 
 impl MotivationModifier {
     pub fn value(&self) -> i32 {
         match self {
             Self::PassageOfTime => -1,
-            Self::OutsideInRain(RainLevel::Light) => -1,
-            Self::OutsideInRain(RainLevel::Medium) => -2,
-            Self::OutsideInRain(RainLevel::Heavy) => -3,
+            Self::OutsideInRain(RainLevel::Light) => -2,
+            Self::OutsideInRain(RainLevel::Medium) => -3,
+            Self::OutsideInRain(RainLevel::Heavy) => -4,
             Self::UnderTree => 2,
-            Self::InFloodWater => -20,
-            Self::OnSteppingStone => 20,
+            Self::Umbrella => 2,
+            Self::InFloodWater => -8,
+            Self::OnSteppingStone => 4,
+            Self::Gumboots => 4,
             Self::Tired => -5,
             Self::InTheDark => -10,
+            Self::FlattenedGrass => 1,
         }
     }
 
@@ -100,6 +131,9 @@ impl MotivationModifier {
             Self::OnSteppingStone => "On Stepping Stone",
             Self::Tired => "Tired",
             Self::InTheDark => "In the Dark",
+            Self::FlattenedGrass => "Flattened some Grass",
+            Self::Gumboots => "Gumboots",
+            Self::Umbrella => "Umbrella",
         }
         .to_string()
     }
@@ -250,17 +284,35 @@ pub struct Game {
     player_item: Option<EntityData>,
     player_lantern: bool,
     player_pushing: bool,
+    flattened_grass: bool,
+    equipped: Equipped,
+    first: bool,
+    cabin_direction: CardinalDirection,
 }
 
 impl Game {
-    const INITIAL_MOTIVATION: i32 = 10000;
+    const INITIAL_MOTIVATION: i32 = 1000;
+    pub const MAX_MOTIVATION: i32 = 1000;
     pub fn new<R: Rng>(config: &Config, base_rng: &mut R) -> Self {
         let mut rng = Isaac64Rng::from_rng(base_rng).unwrap();
         let player_data = components::make_player();
-        let Terrain { world, player } = if config.debug {
-            terrain::from_str(include_str!("demo_terrain.txt"), player_data, &mut rng)
+        let (
+            Terrain {
+                world,
+                player,
+                cabin_direction,
+            },
+            equipped,
+        ) = if config.debug {
+            (
+                terrain::from_str(include_str!("demo_terrain.txt"), player_data, &mut rng),
+                Equipped::all(),
+            )
         } else {
-            terrain::generate(player_data, &mut rng)
+            (
+                terrain::generate(player_data, &mut rng),
+                Equipped::default(),
+            )
         };
         let visibility_grid = VisibilityGrid::new(world.size());
         let mut game = Self {
@@ -269,7 +321,7 @@ impl Game {
             world,
             player,
             animation_context: AnimationContext::default(),
-            time: Time::new(0, 23, 17, 30),
+            time: Time::new(0, 23, 18, 00),
             rain_schedule: RainSchedule::new(&mut rng),
             num_flooded: 0.,
             rng,
@@ -280,11 +332,23 @@ impl Game {
             player_item: None,
             player_lantern: false,
             player_pushing: false,
+            flattened_grass: false,
+            equipped,
+            first: true,
+            cabin_direction,
         };
         game.after_turn(0, config);
         game.update_motivation();
         game.motivation = Self::INITIAL_MOTIVATION;
         game
+    }
+
+    pub fn pushing(&self) -> bool {
+        self.player_pushing
+    }
+
+    fn is_won(&self) -> bool {
+        self.time.day() > 5
     }
 
     pub fn into_running_game(self, running: witness::Running) -> witness::RunningGame {
@@ -413,7 +477,10 @@ impl Game {
         if !self.should_hide_rain(player_coord) {
             self.last_motivation_modifiers
                 .push(MotivationModifier::OutsideInRain(self.rain_level()));
-            if self.is_player_next_to_tree() {
+            if self.equipped.umbrella {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::Umbrella);
+            } else if self.is_player_next_to_tree() {
                 self.last_motivation_modifiers
                     .push(MotivationModifier::UnderTree);
             }
@@ -421,7 +488,10 @@ impl Game {
         if self.is_player_in_flood_water() {
             self.last_motivation_modifiers
                 .push(MotivationModifier::InFloodWater);
-            if self.is_player_on_stepping_stone() {
+            if self.equipped.gumboots {
+                self.last_motivation_modifiers
+                    .push(MotivationModifier::Gumboots);
+            } else if self.is_player_on_stepping_stone() {
                 self.last_motivation_modifiers
                     .push(MotivationModifier::OnSteppingStone);
             }
@@ -443,13 +513,22 @@ impl Game {
                     .push(MotivationModifier::InTheDark);
             }
         }
+        if self.flattened_grass {
+            self.flattened_grass = false;
+            self.last_motivation_modifiers
+                .push(MotivationModifier::FlattenedGrass);
+        }
     }
 
     fn update_motivation(&mut self) {
         self.update_motivation_mod();
         for m in &self.last_motivation_modifiers {
-            self.motivation += m.value();
+            self.motivation = (self.motivation + m.value()).min(Self::MAX_MOTIVATION);
         }
+    }
+
+    fn increase_motivation(&mut self, by: i32) {
+        self.motivation = (self.motivation + by).min(Self::MAX_MOTIVATION);
     }
 
     pub fn last_motivation_modifiers(&self) -> &[MotivationModifier] {
@@ -507,6 +586,10 @@ impl Game {
         self.player_item.as_ref().map(|i| i.item.unwrap())
     }
 
+    pub fn player_lantern(&self) -> bool {
+        self.player_lantern
+    }
+
     pub fn tick(
         &mut self,
         _since_previous: Duration,
@@ -514,7 +597,20 @@ impl Game {
         running: witness::Running,
     ) -> Witness {
         self.animation_context.tick(&mut self.world);
-        running.into_witness()
+        if self.first {
+            self.first = false;
+            let direction = match self.cabin_direction {
+                CardinalDirection::North => "north",
+                CardinalDirection::East => "east",
+                CardinalDirection::South => "south",
+                CardinalDirection::West => "west",
+            };
+            let text = format!(
+                "You've booked five days at a cabin in the forest. You arrive, exhausted, looking forward to falling asleep to the sound of rain. You see the lights of the cabin through the trees to the {}.", direction);
+            running.prompt(text)
+        } else {
+            running.into_witness()
+        }
     }
 
     const FLOOD_STEP: usize = 1200;
@@ -610,6 +706,10 @@ impl Game {
         ret
     }
 
+    pub fn equipped(&self) -> &Equipped {
+        &self.equipped
+    }
+
     pub fn player_walk_inner(
         &mut self,
         direction: CardinalDirection,
@@ -622,6 +722,34 @@ impl Game {
             .expect("can't get coord of player");
         let destination = player_coord + direction.coord();
         if let Some(&layers) = self.world.spatial_table.layers_at(destination) {
+            if let Some(item) = layers.item {
+                if let Some(equipment) = self.world.components.equipment.get(item) {
+                    match equipment {
+                        Equipment::Shovel => self.equipped.shovel = true,
+                        Equipment::Map => self.equipped.map = true,
+                        Equipment::WeatherReport => self.equipped.weather_report = true,
+                        Equipment::Umbrella => self.equipped.umbrella = true,
+                        Equipment::Gumboots => self.equipped.gumboots = true,
+                        Equipment::Crowbar => self.equipped.crowbar = true,
+                        Equipment::Lantern => {
+                            self.equipped.lantern = true;
+                            self.player_lantern = true;
+                        }
+                    }
+                    let text = match equipment {
+                        Equipment::Shovel => "You equip the shovel. You can now dig ditches by pressing 'e'.",
+                        Equipment::Map => "You equip the topographic map. View it by pressing 'm'.",
+                        Equipment::WeatherReport => "You equip the weather report. View it by pressing 'r'.",
+                        Equipment::Umbrella => "You equip the umbrella. Motivation loss by rain is reduced.",
+                        Equipment::Gumboots => "You equip gumboots. Motivation loss by flood water is reduced.",
+                        Equipment::Crowbar => "You equip the crowbar. You can now push rocks. Toggle pushing mode by pressing 'p'.",
+                        Equipment::Lantern => "You equip the lantern. Toggle the light by pressing 'f'.",
+                    };
+                    self.world.components.remove_entity(item);
+                    self.world.spatial_table.remove(item);
+                    return (running.prompt(format!("{}", text)), Ok(()));
+                }
+            }
             if self.player_pushing {
                 if let Some(item) = layers.item {
                     if self.world.components.push.contains(item) {
@@ -652,7 +780,7 @@ impl Game {
                         );
                     } else {
                         self.motivation_flags.chair = true;
-                        self.motivation += motivation::chair(self.rain_level());
+                        self.increase_motivation(motivation::chair(self.rain_level()));
                         let level = match self.rain_level() {
                             RainLevel::Light => "light",
                             RainLevel::Medium => "medium",
@@ -674,7 +802,7 @@ impl Game {
                             } else {
                                 self.player_item = None;
                                 self.motivation_flags.flower = true;
-                                self.motivation += motivation::FLOWER;
+                                self.increase_motivation(motivation::FLOWER);
                                 return (running.prompt(format!("You place a flower on the long-abandoned altar.\n\nMotivation increased by {}.", motivation::FLOWER)), Ok(()));
                             }
                         } else {
@@ -701,7 +829,7 @@ impl Game {
                             } else {
                                 self.player_item = None;
                                 self.motivation_flags.tea = true;
-                                self.motivation += motivation::TEA;
+                                self.increase_motivation(motivation::TEA);
                                 return (running.prompt(format!("Mmm...a nice relaxing cup of tea.\n\nMotivation increased by {}.", motivation::TEA)), Ok(()));
                             }
                         } else {
@@ -761,7 +889,9 @@ impl Game {
                     }
                 }
                 if self.world.components.grass.contains(feature) {
-                    self.world.flatten_grass(feature);
+                    if self.world.flatten_grass(feature) {
+                        self.flattened_grass = true;
+                    }
                 }
             }
             let _ = self
@@ -777,7 +907,7 @@ impl Game {
                 if self.world.components.end_of_pier.contains(floor) && !self.motivation_flags.lake
                 {
                     self.motivation_flags.lake = true;
-                    self.motivation += motivation::LAKE;
+                    self.increase_motivation(motivation::LAKE);
                     return (running.prompt(format!("Contemplating the vastness of this lake puts your life into perspective.\n\nMotivation increased by {}.", motivation::LAKE)), Ok(()));
                 }
             }
@@ -787,7 +917,7 @@ impl Game {
         (running.into_witness(), Ok(()))
     }
 
-    const TURN_TIME: u32 = 60;
+    const TURN_TIME: u32 = 120;
 
     pub fn player_walk(
         &mut self,
@@ -798,6 +928,9 @@ impl Game {
         let (witness, result) = self.player_walk_inner(direction, running);
         if result.is_ok() {
             self.after_turn(Self::TURN_TIME, config);
+        }
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
         }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
@@ -838,6 +971,9 @@ impl Game {
                 break (witness, result);
             }
         };
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
+        }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }
@@ -846,6 +982,9 @@ impl Game {
 
     pub fn player_wait(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(Self::TURN_TIME, config);
+        if self.is_won() {
+            return Witness::Win;
+        }
         if self.motivation <= 0 {
             return Witness::GameOver;
         }
@@ -854,9 +993,13 @@ impl Game {
 
     pub fn player_wait_long(&mut self, config: &Config, running: witness::Running) -> Witness {
         self.after_turn(3600, config);
+        if self.is_won() {
+            return Witness::Win;
+        }
         if self.motivation <= 0 {
             return Witness::GameOver;
         }
+
         running.into_witness()
     }
 
@@ -866,7 +1009,10 @@ impl Game {
         self.last_sleep = Some(self.time.seconds);
         self.update_motivation_mod();
         self.motivation = motivation; // don't lose motivation while asleep
-        self.motivation += motivation::SLEEP;
+        self.increase_motivation(motivation::SLEEP);
+        if self.is_won() {
+            return Witness::Win;
+        }
         sleep.prompt(format!(
             "You sleep for 8 hours.\n\nMotivation increased by {}.",
             motivation::SLEEP
@@ -940,6 +1086,9 @@ impl Game {
             }
         };
         self.after_turn(Self::TURN_TIME, config);
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
+        }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }
@@ -951,9 +1100,18 @@ impl Game {
         config: &Config,
         running: witness::Running,
     ) -> (Witness, Result<(), ActionError>) {
+        if !self.equipped.lantern {
+            return (
+                running.into_witness(),
+                ActionError::err_msg("You don't have the lantern equipped!"),
+            );
+        }
         self.player_lantern = !self.player_lantern;
         self.after_turn(0, config);
         self.update_motivation_mod(); // remove the "InTheDark" modifier
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
+        }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }
@@ -965,8 +1123,17 @@ impl Game {
         config: &Config,
         running: witness::Running,
     ) -> (Witness, Result<(), ActionError>) {
+        if !self.equipped.crowbar {
+            return (
+                running.into_witness(),
+                ActionError::err_msg("You don't have the crowbar equipped!"),
+            );
+        }
         self.player_pushing = !self.player_pushing;
         self.after_turn(0, config);
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
+        }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }
@@ -978,8 +1145,17 @@ impl Game {
         config: &Config,
         running: witness::Running,
     ) -> (Witness, Result<(), ActionError>) {
+        if !self.equipped.shovel {
+            return (
+                running.into_witness(),
+                ActionError::err_msg("You don't have the shovel equipped!"),
+            );
+        }
         self.world.dig(self.player_coord());
         self.after_turn(Self::TURN_TIME, config);
+        if self.is_won() {
+            return (Witness::Win, Ok(()));
+        }
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }

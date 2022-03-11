@@ -189,7 +189,7 @@ impl GameInstance {
             Rgba32::new_grey(255)
         };
         StyledString {
-            string: format!("Motivation: {}", motivation),
+            string: format!("Motivation: {}/{}", motivation, Game::MAX_MOTIVATION),
             style: Style::plain_text()
                 .with_bold(true)
                 .with_foreground(motivation_colour),
@@ -231,7 +231,54 @@ impl GameInstance {
             style: Style::plain_text().with_bold(true),
         }
         .wrap_word()
-        .render(&(), ctx.add_y(3), fb);
+        .render(&(), ctx.add_xy(40, 2), fb);
+        let rock_behaviour = if self.game.pushing() { "push" } else { "walk" };
+        StyledString {
+            string: (format!("Rocks: {}", rock_behaviour)),
+            style: Style::plain_text().with_bold(true),
+        }
+        .wrap_word()
+        .render(&(), ctx.add_xy(25, 2), fb);
+        let mut equipped_text = Vec::new();
+        {
+            let equipped = self.game.equipped();
+            if equipped.umbrella {
+                equipped_text.push("Umbrella");
+            }
+            if equipped.gumboots {
+                equipped_text.push("Gumboots");
+            }
+            if equipped.lantern {
+                if self.game.player_lantern() {
+                    equipped_text.push("Lantern (on)");
+                } else {
+                    equipped_text.push("Lantern (off)");
+                }
+            }
+            if equipped.crowbar {
+                equipped_text.push("Crowbar");
+            }
+            if equipped.shovel {
+                equipped_text.push("Shovel");
+            }
+            if equipped.map {
+                equipped_text.push("Map");
+            }
+            if equipped.weather_report {
+                equipped_text.push("Weather Report");
+            }
+        }
+        let equipped_string = if equipped_text.is_empty() {
+            "(nothing)".to_string()
+        } else {
+            equipped_text.join(", ")
+        };
+        StyledString {
+            string: (format!("Equipped: {}", equipped_string)),
+            style: Style::plain_text().with_bold(true),
+        }
+        .wrap_word()
+        .render(&(), ctx.add_xy(0, 3), fb);
     }
 }
 
@@ -403,8 +450,28 @@ impl GameLoopData {
                             .game
                             .player_toggle_pushing(&self.game_config, running),
                         AppInput::Dig => instance.game.player_dig(&self.game_config, running),
-                        AppInput::Map => return GameLoopState::Map(running),
-                        AppInput::WeatherReport => return GameLoopState::WeatherReport(running),
+                        AppInput::Map => {
+                            if instance.game.equipped().map {
+                                return GameLoopState::Map(running);
+                            } else {
+                                (
+                                    running.into_witness(),
+                                    ActionError::err_msg("You don't have the map equipped!"),
+                                )
+                            }
+                        }
+                        AppInput::WeatherReport => {
+                            if instance.game.equipped().weather_report {
+                                return GameLoopState::WeatherReport(running);
+                            } else {
+                                (
+                                    running.into_witness(),
+                                    ActionError::err_msg(
+                                        "You don't have the weather report equipped!",
+                                    ),
+                                )
+                            }
+                        }
                         AppInput::Examine => {
                             return GameLoopState::Examine(running);
                         }
@@ -836,7 +903,12 @@ fn main_menu() -> CF<MainMenuEntry> {
 
 fn title_decorate<T: 'static>(cf: CF<T>) -> CF<T> {
     cf.with_title(
-        styled_string("Rain Forest".to_string(), Style::plain_text()),
+        styled_string(
+            "Rain Forest".to_string(),
+            Style::plain_text()
+                .with_foreground(Rgba32::hex_rgb(0x1b6f16))
+                .with_bold(true),
+        ),
         2,
     )
     .centre()
@@ -977,6 +1049,24 @@ fn sleep_menu(sleep: witness::Sleep) -> CF<Witness> {
     })
 }
 
+fn popup_delay(string: String) -> CF<()> {
+    popup_style(
+        StyledString {
+            string: string.clone(),
+            style: Style::new()
+                .with_bold(false)
+                .with_underline(false)
+                .with_foreground(Rgba32::new_grey(255)),
+        }
+        .wrap_word()
+        .boxed_cf()
+        .bound_width(50)
+        .pad_by(Padding::all(1))
+        .delay(Duration::from_secs(2)),
+    )
+    .then(|| popup(string))
+}
+
 fn popup(string: String) -> CF<()> {
     popup_style(
         StyledString {
@@ -1006,7 +1096,17 @@ fn game_over() -> CF<()> {
     on_state_then(move |state: &mut State| {
         state.examine_message = None;
         state.cursor = None;
-        popup("You tire of trudging through the flooded forest in the rain. You pack up your belongings and return home.".to_string())
+        state.clear_saved_game();
+        popup_delay("You tire of trudging through the flooded forest in the rain. You pack up your belongings and return home.".to_string())
+    })
+}
+
+fn win() -> CF<()> {
+    on_state_then(move |state: &mut State| {
+        state.examine_message = None;
+        state.cursor = None;
+        state.clear_saved_game();
+        popup_delay("After five days enjoying the forest in the rain, it's time to return to your life. This break was just what you needed.".to_string())
     })
 }
 
@@ -1018,6 +1118,7 @@ pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
             Witness::Sleep(sleep) => sleep_menu(sleep).map(Playing).continue_(),
             Witness::Prompt(prompt_witness) => prompt(prompt_witness).map(Playing).continue_(),
             Witness::GameOver => game_over().map_val(|| MainMenu).continue_(),
+            Witness::Win => win().map_val(|| MainMenu).continue_(),
         },
         Paused(running) => pause_menu_loop(running).map(|pause_output| match pause_output {
             PauseOutput::ContinueGame { running } => {

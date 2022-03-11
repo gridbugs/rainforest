@@ -15,6 +15,7 @@ use rand::{
 pub struct Terrain {
     pub world: World,
     pub player: Entity,
+    pub cabin_direction: CardinalDirection,
 }
 
 #[allow(dead_code)]
@@ -118,10 +119,14 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
         }
     }
     let player = player.expect("didn't create player");
-    Terrain { world, player }
+    Terrain {
+        world,
+        player,
+        cabin_direction: CardinalDirection::West,
+    }
 }
 
-const SIZE: Size = Size::new_u16(140, 140);
+const SIZE: Size = Size::new_u16(120, 120);
 
 fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain, &str> {
     let size = SIZE;
@@ -293,6 +298,9 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                 '?' => {
                     world.spawn_ground(out_coord, *topography_grid.get_checked(out_coord));
                     world.spawn_altar(out_coord);
+                    *no_trees.get_checked_mut(out_coord + Coord::new(0, 1)) = true;
+                    *no_trees.get_checked_mut(out_coord + Coord::new(0, 2)) = true;
+                    *no_trees.get_checked_mut(out_coord + Coord::new(0, 3)) = true;
                 }
                 ' ' => (),
                 other => panic!("unexpected char {}", other),
@@ -590,10 +598,11 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         Equipment::Gumboots,
         Equipment::WeatherReport,
         Equipment::Map,
+        Equipment::Crowbar,
     ];
     for (coord, equipment) in equipment_candidates_spread
         .into_iter()
-        .take(6)
+        .take(equipment_types.len())
         .zip(equipment_types.into_iter())
     {
         match equipment {
@@ -606,7 +615,11 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             Equipment::Crowbar => world.spawn_crowbar(coord),
         };
     }
-    Ok(Terrain { world, player })
+    Ok(Terrain {
+        world,
+        player,
+        cabin_direction: door_direction.opposite(),
+    })
 }
 
 pub fn generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Terrain {

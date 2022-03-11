@@ -152,9 +152,13 @@ impl World {
         self.components.tile.insert(door, Tile::DoorClosed(axis));
     }
 
-    pub fn flatten_grass(&mut self, grass: Entity) {
+    pub fn flatten_grass(&mut self, grass: Entity) -> bool {
         self.components.opacity.remove(grass);
-        self.components.tile.insert(grass, Tile::FlatGrass);
+        if let Some(tile) = self.components.tile.insert(grass, Tile::FlatGrass) {
+            tile == Tile::Grass
+        } else {
+            false
+        }
     }
 
     pub fn turn_lamps_on(&mut self) {
