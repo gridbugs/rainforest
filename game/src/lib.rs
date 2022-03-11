@@ -253,7 +253,7 @@ pub struct Game {
 }
 
 impl Game {
-    const INITIAL_MOTIVATION: i32 = 1000;
+    const INITIAL_MOTIVATION: i32 = 10000;
     pub fn new<R: Rng>(config: &Config, base_rng: &mut R) -> Self {
         let mut rng = Isaac64Rng::from_rng(base_rng).unwrap();
         let player_data = components::make_player();

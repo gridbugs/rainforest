@@ -486,6 +486,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             || coord.y > size.height() as i32 - padding
     };
     let mut rock_candidates = Vec::new();
+    let mut behind_tree = Grid::new_copy(size, false);
     for coord in size.coord_iter_row_major() {
         if world.spatial_table.layers_at_checked(coord).floor.is_some() {
             continue;
@@ -510,6 +511,11 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                     )) - 0.2)
                         * tree_chance_scale
             {
+                for i in 0..3 {
+                    if let Some(cell) = behind_tree.get_mut(coord + Coord { x: 0, y: -i }) {
+                        *cell = true;
+                    }
+                }
                 world.spawn_tree(coord, rng);
             } else {
                 let noise = tree_chance.noise01((
@@ -554,7 +560,9 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
                             && coord.x < size.x() as i32 - padding
                             && coord.y < size.y() as i32 - padding
                         {
-                            equipment_candidates.push(coord);
+                            if !behind_tree.get_checked(coord) {
+                                equipment_candidates.push(coord);
+                            }
                         }
                     }
                 }
