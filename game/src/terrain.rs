@@ -59,7 +59,7 @@ pub fn from_str<R: Rng>(s: &str, player_data: EntityData, rng: &mut R) -> Terrai
                     world.spawn_weather_report(coord);
                 }
                 '6' => {
-                    world.spawn_floor(coord, 0.);
+                    world.spawn_ground(coord, 0.);
                     world.spawn_lantern(coord);
                 }
                 '&' => {
@@ -535,7 +535,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
         }
         world.spawn_ground(coord, *topography_grid.get_checked(coord));
     }
-    let num_rocks = 100;
+    let num_rocks = 200;
     if rock_candidates.len() < num_rocks {
         return Err("not enough rock rock candidate");
     }
@@ -549,7 +549,13 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             if let Some(floor) = cell.floor {
                 if world.components.ground.contains(floor) {
                     if coord.manhattan_distance(cabin_coord) > 50 {
-                        equipment_candidates.push(coord);
+                        if coord.x > padding
+                            && coord.y > padding
+                            && coord.x < size.x() as i32 - padding
+                            && coord.y < size.y() as i32 - padding
+                        {
+                            equipment_candidates.push(coord);
+                        }
                     }
                 }
             }
@@ -589,6 +595,7 @@ fn try_generate<R: Rng>(player_data: EntityData, rng: &mut R) -> Result<Terrain,
             Equipment::Gumboots => world.spawn_gumboots(coord),
             Equipment::WeatherReport => world.spawn_weather_report(coord),
             Equipment::Map => world.spawn_map(coord),
+            Equipment::Crowbar => world.spawn_crowbar(coord),
         };
     }
     Ok(Terrain { world, player })

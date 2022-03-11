@@ -45,3 +45,7 @@ pub const WEATHER_REPORT_BACKGROUND: Rgba32 = Rgba32::new_grey(185);
 pub const WEATHER_REPORT_FOREGROUND: Rgba32 = Rgba32::new_rgb(0, 0, 0);
 pub const LANTERN_HANDLE: Rgba32 = Rgba32::new_rgb(255, 255, 255);
 pub const LANTERN_LIGHT: Rgba32 = Rgba32::new_rgb(255, 255, 0);
+pub const CROWBAR_SHAFT: Rgba32 = Rgba32::new_rgb(185, 63, 63);
+pub const CROWBAR_TIP: Rgba32 = Rgba32::new_rgb(127, 127, 127);
+pub const DITCH_FOREGROUND: Rgba32 = Rgba32::hex_rgb(0x372405);
+pub const DITCH_BACKGROUND: Rgba32 = Rgba32::hex_rgb(0x291b04);

@@ -75,6 +75,8 @@ pub fn render_3x3_from_visibility(
         Tile::Map => map(ctx, fb),
         Tile::WeatherReport => weather_report(ctx, fb),
         Tile::Lantern => lantern(ctx, fb),
+        Tile::Crowbar => crowbar(ctx, fb),
+        Tile::Ditch => ditch(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity, tile }) = tile_layers.floor {
@@ -156,6 +158,8 @@ pub fn render_3x3_from_visibility_remembered(
         Tile::Map => map(ctx, fb),
         Tile::WeatherReport => weather_report(ctx, fb),
         Tile::Lantern => lantern(ctx, fb),
+        Tile::Crowbar => crowbar(ctx, fb),
+        Tile::Ditch => ditch(ctx, fb),
     };
     let tile_layers = visibility_cell.tile_layers();
     if let Some(EntityTile { entity: _, tile }) = tile_layers.floor {
@@ -1810,4 +1814,58 @@ fn lantern(ctx: Ctx, fb: &mut FrameBuffer) {
             .without_background()
             .with_foreground(colour::LANTERN_HANDLE),
     );
+}
+
+fn crowbar(ctx: Ctx, fb: &mut FrameBuffer) {
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 0),
+        0,
+        RenderCell::default()
+            .with_character('┌')
+            .with_bold(true)
+            .with_foreground(colour::CROWBAR_TIP),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(2, 0),
+        0,
+        RenderCell::default()
+            .with_character('┐')
+            .with_bold(true)
+            .with_foreground(colour::CROWBAR_TIP),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 1),
+        0,
+        RenderCell::default()
+            .with_character('│')
+            .with_bold(true)
+            .with_foreground(colour::CROWBAR_SHAFT),
+    );
+    fb.set_cell_relative_to_ctx(
+        ctx,
+        Coord::new(1, 2),
+        0,
+        RenderCell::default()
+            .with_character('┘')
+            .with_bold(true)
+            .with_foreground(colour::CROWBAR_SHAFT),
+    );
+}
+
+fn ditch(ctx: Ctx, fb: &mut FrameBuffer) {
+    for coord in Size::new_u16(3, 3).coord_iter_row_major() {
+        fb.set_cell_relative_to_ctx(
+            ctx,
+            coord,
+            0,
+            RenderCell::default()
+                .with_character('x')
+                .with_bold(true)
+                .with_background(colour::DITCH_BACKGROUND)
+                .with_foreground(colour::DITCH_FOREGROUND),
+        );
+    }
 }

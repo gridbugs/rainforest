@@ -249,6 +249,7 @@ pub struct Game {
     motivation_flags: MotivationFlags,
     player_item: Option<EntityData>,
     player_lantern: bool,
+    player_pushing: bool,
 }
 
 impl Game {
@@ -278,6 +279,7 @@ impl Game {
             motivation_flags: MotivationFlags::default(),
             player_item: None,
             player_lantern: false,
+            player_pushing: false,
         };
         game.after_turn(0, config);
         game.update_motivation();
@@ -581,6 +583,33 @@ impl Game {
         self.update_visibility(config);
     }
 
+    fn to_push(&self, start: Coord, direction: CardinalDirection) -> Vec<Entity> {
+        let mut ret = vec![];
+        let mut coord = start;
+        loop {
+            if let Some(layers) = self.world.spatial_table.layers_at(coord) {
+                if let Some(item) = layers.item {
+                    if self.world.components.push.contains(item) {
+                        ret.push(item);
+                        coord += direction.coord();
+                        continue;
+                    }
+                } else if let Some(feature) = layers.feature {
+                    if self.world.components.solid.contains(feature) {
+                        ret.clear();
+                        break;
+                    }
+                }
+                break;
+            } else {
+                ret.clear();
+                break;
+            }
+        }
+        ret.reverse();
+        ret
+    }
+
     pub fn player_walk_inner(
         &mut self,
         direction: CardinalDirection,
@@ -592,7 +621,20 @@ impl Game {
             .coord_of(self.player)
             .expect("can't get coord of player");
         let destination = player_coord + direction.coord();
-        if let Some(layers) = self.world.spatial_table.layers_at(destination) {
+        if let Some(&layers) = self.world.spatial_table.layers_at(destination) {
+            if self.player_pushing {
+                if let Some(item) = layers.item {
+                    if self.world.components.push.contains(item) {
+                        for e in self.to_push(destination, direction) {
+                            let coord = self.world.spatial_table.coord_of(e).unwrap();
+                            let _ = self
+                                .world
+                                .spatial_table
+                                .update_coord(e, coord + direction.coord());
+                        }
+                    }
+                }
+            }
             if let Some(floor) = layers.floor {
                 if self.world.components.lake.contains(floor) {
                     return (
@@ -912,6 +954,32 @@ impl Game {
         self.player_lantern = !self.player_lantern;
         self.after_turn(0, config);
         self.update_motivation_mod(); // remove the "InTheDark" modifier
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
+        }
+        (running.into_witness(), Ok(()))
+    }
+
+    pub fn player_toggle_pushing(
+        &mut self,
+        config: &Config,
+        running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        self.player_pushing = !self.player_pushing;
+        self.after_turn(0, config);
+        if self.motivation <= 0 {
+            return (Witness::GameOver, Ok(()));
+        }
+        (running.into_witness(), Ok(()))
+    }
+
+    pub fn player_dig(
+        &mut self,
+        config: &Config,
+        running: witness::Running,
+    ) -> (Witness, Result<(), ActionError>) {
+        self.world.dig(self.player_coord());
+        self.after_turn(Self::TURN_TIME, config);
         if self.motivation <= 0 {
             return (Witness::GameOver, Ok(()));
         }

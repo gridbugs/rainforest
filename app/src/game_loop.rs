@@ -182,7 +182,7 @@ impl GameInstance {
         weather.render(&(), ctx.add_xy(67, 1), fb);
     }
     fn render_bottom_ui(&self, ctx: Ctx, fb: &mut FrameBuffer) {
-        let motivation = self.game.motivation();
+        let motivation = self.game.motivation().max(0);
         let motivation_colour = if motivation < 200 {
             Rgba32::new_rgb(255, 0, 0)
         } else {
@@ -399,6 +399,10 @@ impl GameLoopData {
                         AppInput::Lantern => instance
                             .game
                             .player_toggle_lantern(&self.game_config, running),
+                        AppInput::Pushing => instance
+                            .game
+                            .player_toggle_pushing(&self.game_config, running),
+                        AppInput::Dig => instance.game.player_dig(&self.game_config, running),
                         AppInput::Map => return GameLoopState::Map(running),
                         AppInput::WeatherReport => return GameLoopState::WeatherReport(running),
                         AppInput::Examine => {

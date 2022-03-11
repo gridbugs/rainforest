@@ -15,6 +15,8 @@ pub enum AppInput {
     Map,
     WeatherReport,
     Lantern,
+    Pushing,
+    Dig,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -53,6 +55,8 @@ impl Default for Controls {
             KeyboardInput::Char(' ') => AppInput::Wait,
             KeyboardInput::Char('.') => AppInput::WaitLong,
             KeyboardInput::Char('f') => AppInput::Lantern,
+            KeyboardInput::Char('p') => AppInput::Pushing,
+            KeyboardInput::Char('e') => AppInput::Dig,
         ];
         let gamepad = btreemap![
             GamepadButton::DPadLeft => AppInput::Direction(CardinalDirection::West),

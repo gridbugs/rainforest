@@ -190,8 +190,24 @@ impl World {
             self.become_water(entity, rng);
         }
         for &(entity, _) in entities_by_height.iter().skip(n) {
-            self.components.tile.insert(entity, Tile::Ground);
+            let tile = if self.components.ditch.contains(entity) {
+                Tile::Ditch
+            } else {
+                Tile::Ground
+            };
+            self.components.tile.insert(entity, tile);
             self.components.realtime.remove(entity);
+        }
+    }
+
+    pub fn dig(&mut self, coord: Coord) {
+        if let Some(floor) = self.spatial_table.layers_at_checked(coord).floor {
+            if self.components.ground.contains(floor) {
+                self.components.ditch.insert(floor, ());
+                if let Some(height) = self.components.height.get_mut(floor) {
+                    *height -= 0.1;
+                }
+            }
         }
     }
 }

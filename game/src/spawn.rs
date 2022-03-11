@@ -331,7 +331,7 @@ impl World {
             )
             .unwrap();
         self.components.tile.insert(entity, Tile::Rock);
-        self.components.item.insert(entity, Item::Rock);
+        self.components.push.insert(entity, ());
         self.components.rock.insert(entity, ());
         entity
     }
@@ -544,6 +544,22 @@ impl World {
         self.components.tile.insert(entity, Tile::Lantern);
         self.components.equipment.insert(entity, Equipment::Lantern);
         self.components.light.insert(entity, Self::LANTERN_LIGHT);
+        entity
+    }
+
+    pub fn spawn_crowbar(&mut self, coord: Coord) -> Entity {
+        let entity = self.entity_allocator.alloc();
+        self.spatial_table
+            .update(
+                entity,
+                Location {
+                    coord,
+                    layer: Some(Layer::Item),
+                },
+            )
+            .unwrap();
+        self.components.tile.insert(entity, Tile::Crowbar);
+        self.components.equipment.insert(entity, Equipment::Crowbar);
         entity
     }
 }

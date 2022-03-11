@@ -33,6 +33,8 @@ declare_entity_module! {
         chair: (),
         rock: (),
         equipment: Equipment,
+        push: (),
+        ditch: (),
     }
 }
 pub use components::Components;
@@ -73,6 +75,8 @@ pub enum Tile {
     Map,
     WeatherReport,
     Lantern,
+    Crowbar,
+    Ditch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,6 +105,7 @@ pub enum Equipment {
     Map,
     WeatherReport,
     Lantern,
+    Crowbar,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
