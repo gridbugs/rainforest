@@ -2,6 +2,6 @@
 **/*.rs.bk
 **/*.sw?
 **/*.wasm
-Cargo.lock
 .direnv
 .envrc
+result

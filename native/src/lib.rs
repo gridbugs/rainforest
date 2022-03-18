@@ -4,6 +4,7 @@ use general_storage_static::{
 };
 pub use meap;
 use rainforest_app::{AppStorage, InitialRngSeed};
+use std::path::PathBuf;
 
 const DEFAULT_SAVE_FILE: &str = "save";
 const DEFAULT_NEXT_TO_EXE_STORAGE_DIR: &str = "save";
@@ -34,8 +35,14 @@ impl NativeCommon {
             } in {{
                 let initial_rng_seed = rng_seed.map(InitialRngSeed::U64).unwrap_or(InitialRngSeed::Random);
                 let mut file_storage = StaticStorage::new(
-                    FileStorage::next_to_exe(storage_dir, IfDirectoryMissing::Create)
-                    .expect("failed to open directory"),
+                    match FileStorage::next_to_exe(&storage_dir, IfDirectoryMissing::Create) {
+                        Ok(fs) => fs,
+                        Err(_) => {
+                            log::warn!("Couldn't create save dir next to executable. Will use temporary directory instead.");
+                            FileStorage::temp(PathBuf::from("rainforest").join(storage_dir), IfDirectoryMissing::Create)
+                                .expect("failed to open directory")
+                        }
+                    }
                 );
                 if delete_save {
                     let result = file_storage.remove(&save_file);
