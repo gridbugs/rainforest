@@ -8,8 +8,7 @@ use crate::{
     text, AppStorage, InitialRngSeed,
 };
 use chargrid::{
-    border::BorderStyle, control_flow::boxed::*, menu, pad_by::Padding, prelude::*,
-    text::StyledString,
+    border::BorderStyle, control_flow::*, menu, pad_by::Padding, prelude::*, text::StyledString,
 };
 use grid_2d::Grid;
 use rainforest_game::{
@@ -24,7 +23,7 @@ const GAME_VIEW_SIZE: Size = Size::new_u16(26, 18);
 const GAME_VIEW_OFFSET: Coord = Coord::new(1, 2);
 
 /// An interactive, renderable process yielding a value of type `T`
-pub type CF<T> = BoxedCF<Option<T>, GameLoopData>;
+pub type AppCF<T> = CF<Option<T>, GameLoopData>;
 pub type State = GameLoopData;
 
 struct RngSeedSource {
@@ -554,10 +553,8 @@ impl Component for GameInstanceComponent {
     }
 }
 
-fn game_instance_component(running: witness::Running) -> CF<GameLoopState> {
-    boxed_cf(GameInstanceComponent::new(running))
-        .some()
-        .no_peek()
+fn game_instance_component(running: witness::Running) -> AppCF<GameLoopState> {
+    cf(GameInstanceComponent::new(running)).some().no_peek()
 }
 
 struct GameExamineComponent;
@@ -590,7 +587,7 @@ impl Component for GameExamineComponent {
     }
 }
 
-fn game_examine_component() -> CF<()> {
+fn game_examine_component() -> AppCF<()> {
     on_state_then(|state: &mut State| {
         state.context_message = Some(StyledString {
             string: "Examining (escape/start to return to game)".to_string(),
@@ -598,7 +595,7 @@ fn game_examine_component() -> CF<()> {
         });
         let cursor = state.cursor.unwrap_or_else(|| state.game().player_coord());
         state.cursor = Some(cursor);
-        boxed_cf(GameExamineComponent)
+        cf(GameExamineComponent)
             .catch_escape_or_start()
             .map_val(|| ())
             .side_effect(|state: &mut State| {
@@ -608,7 +605,7 @@ fn game_examine_component() -> CF<()> {
     })
 }
 
-fn weather_report_component() -> CF<()> {
+fn weather_report_component() -> AppCF<()> {
     on_state_then(|state: &mut State| {
         state.context_message = Some(StyledString {
             string: "Weather Report (escape/start to return to game)".to_string(),
@@ -616,7 +613,7 @@ fn weather_report_component() -> CF<()> {
         });
         let rain_schedule = state.game().rain_schedule();
         state.examine_message = None;
-        boxed_cf(WeatherReportComponent(rain_schedule))
+        cf(WeatherReportComponent(rain_schedule))
             .catch_escape_or_start()
             .map_val(|| ())
             .side_effect(|state: &mut State| {
@@ -797,7 +794,7 @@ impl Component for MapComponent {
     }
 }
 
-fn map_component() -> CF<()> {
+fn map_component() -> AppCF<()> {
     on_state_then(|state: &mut State| {
         state.context_message = Some(StyledString {
             string: "Topographic Map (escape/start to return to game)".to_string(),
@@ -805,7 +802,7 @@ fn map_component() -> CF<()> {
         });
         let topography_grid = state.game().topography_grid();
         state.examine_message = None;
-        boxed_cf(MapComponent(topography_grid))
+        cf(MapComponent(topography_grid))
             .catch_escape_or_start()
             .map_val(|| ())
             .side_effect(|state: &mut State| {
@@ -851,7 +848,7 @@ const MENU_FADE_SPEC: menu::identifier::fade_spec::FadeSpec = {
     }
 };
 
-fn menu_style<T: 'static>(menu: CF<T>) -> CF<T> {
+fn menu_style<T: 'static>(menu: AppCF<T>) -> AppCF<T> {
     menu.border(BorderStyle::default())
         .fill(Rgba32::new_grey(0))
         .centre()
@@ -862,7 +859,7 @@ fn menu_style<T: 'static>(menu: CF<T>) -> CF<T> {
         )
 }
 
-fn popup_style<T: 'static>(menu: CF<T>) -> CF<T> {
+fn popup_style<T: 'static>(menu: AppCF<T>) -> AppCF<T> {
     menu.border(BorderStyle::default())
         .fill(Rgba32::new_grey(0))
         .centre()
@@ -886,7 +883,7 @@ enum MainMenuOutput {
     Quit,
 }
 
-fn main_menu() -> CF<MainMenuEntry> {
+fn main_menu() -> AppCF<MainMenuEntry> {
     use menu::builder::*;
     use MainMenuEntry::*;
     let mut builder = menu_builder().vi_keys();
@@ -898,10 +895,10 @@ fn main_menu() -> CF<MainMenuEntry> {
     add_item(NewGame, "New Game", 'n');
     add_item(Help, "Help", 'h');
     add_item(Quit, "Quit", 'q');
-    builder.build_boxed_cf()
+    builder.build_cf()
 }
 
-fn title_decorate<T: 'static>(cf: CF<T>) -> CF<T> {
+fn title_decorate<T: 'static>(cf: AppCF<T>) -> AppCF<T> {
     cf.with_title(
         styled_string(
             "Rain Forest".to_string(),
@@ -915,7 +912,7 @@ fn title_decorate<T: 'static>(cf: CF<T>) -> CF<T> {
 }
 
 const MAIN_MENU_TEXT_WIDTH: u32 = 40;
-fn main_menu_loop() -> CF<MainMenuOutput> {
+fn main_menu_loop() -> AppCF<MainMenuOutput> {
     use MainMenuEntry::*;
     title_decorate(main_menu()).repeat_unit(move |entry| match entry {
         NewGame => on_state(|state: &mut State| MainMenuOutput::NewGame {
@@ -943,7 +940,7 @@ enum PauseOutput {
     Quit,
 }
 
-fn pause_menu() -> CF<PauseMenuEntry> {
+fn pause_menu() -> AppCF<PauseMenuEntry> {
     use menu::builder::*;
     use PauseMenuEntry::*;
     let mut builder = menu_builder().vi_keys();
@@ -958,10 +955,10 @@ fn pause_menu() -> CF<PauseMenuEntry> {
     add_item(NewGame, "New Game", 'n');
     add_item(Help, "Help", 'h');
     add_item(Clear, "Clear", 'c');
-    builder.build_boxed_cf()
+    builder.build_cf()
 }
 
-fn pause_menu_loop(running: witness::Running) -> CF<PauseOutput> {
+fn pause_menu_loop(running: witness::Running) -> AppCF<PauseOutput> {
     use PauseMenuEntry::*;
     let text_width = 64;
     menu_style(
@@ -998,7 +995,7 @@ fn pause_menu_loop(running: witness::Running) -> CF<PauseOutput> {
     )
 }
 
-fn yes_no_menu() -> CF<bool> {
+fn yes_no_menu() -> AppCF<bool> {
     use menu::builder::*;
     menu_builder()
         .vi_keys()
@@ -1018,19 +1015,17 @@ fn yes_no_menu() -> CF<bool> {
             .add_hotkey_char('n')
             .add_hotkey_char('N'),
         )
-        .build_boxed_cf()
+        .build_cf()
 }
 
-fn yes_no(message: String) -> CF<bool> {
+fn yes_no(message: String) -> AppCF<bool> {
     menu_style(
         yes_no_menu().with_title(
-            boxed_cf(
-                StyledString {
-                    string: message,
-                    style: Style::plain_text(),
-                }
-                .wrap_word(),
-            )
+            cf(StyledString {
+                string: message,
+                style: Style::plain_text(),
+            }
+            .wrap_word())
             .ignore_state()
             .bound_width(40),
             1,
@@ -1038,7 +1033,7 @@ fn yes_no(message: String) -> CF<bool> {
     )
 }
 
-fn sleep_menu(sleep: witness::Sleep) -> CF<Witness> {
+fn sleep_menu(sleep: witness::Sleep) -> AppCF<Witness> {
     yes_no("Go to sleep?".to_string()).map_side_effect(|yes, state: &mut State| {
         if yes {
             let instance = state.instance.as_mut().unwrap();
@@ -1049,7 +1044,7 @@ fn sleep_menu(sleep: witness::Sleep) -> CF<Witness> {
     })
 }
 
-fn popup_delay(string: String) -> CF<()> {
+fn popup_delay(string: String) -> AppCF<()> {
     popup_style(
         StyledString {
             string: string.clone(),
@@ -1059,7 +1054,7 @@ fn popup_delay(string: String) -> CF<()> {
                 .with_foreground(Rgba32::new_grey(255)),
         }
         .wrap_word()
-        .boxed_cf()
+        .cf()
         .bound_width(50)
         .pad_by(Padding::all(1))
         .delay(Duration::from_secs(2)),
@@ -1067,7 +1062,7 @@ fn popup_delay(string: String) -> CF<()> {
     .then(|| popup(string))
 }
 
-fn popup(string: String) -> CF<()> {
+fn popup(string: String) -> AppCF<()> {
     popup_style(
         StyledString {
             string,
@@ -1077,14 +1072,14 @@ fn popup(string: String) -> CF<()> {
                 .with_foreground(Rgba32::new_grey(255)),
         }
         .wrap_word()
-        .boxed_cf()
+        .cf()
         .bound_width(50)
         .pad_by(Padding::all(1))
         .press_any_key(),
     )
 }
 
-fn prompt(prompt_witness: witness::Prompt) -> CF<Witness> {
+fn prompt(prompt_witness: witness::Prompt) -> AppCF<Witness> {
     on_state_then(move |state: &mut State| {
         state.examine_message = None;
         state.cursor = None;
@@ -1092,7 +1087,7 @@ fn prompt(prompt_witness: witness::Prompt) -> CF<Witness> {
     })
 }
 
-fn game_over() -> CF<()> {
+fn game_over() -> AppCF<()> {
     on_state_then(move |state: &mut State| {
         state.examine_message = None;
         state.cursor = None;
@@ -1101,7 +1096,7 @@ fn game_over() -> CF<()> {
     })
 }
 
-fn win() -> CF<()> {
+fn win() -> AppCF<()> {
     on_state_then(move |state: &mut State| {
         state.examine_message = None;
         state.cursor = None;
@@ -1110,7 +1105,7 @@ fn win() -> CF<()> {
     })
 }
 
-pub fn game_loop_component(initial_state: GameLoopState) -> CF<()> {
+pub fn game_loop_component(initial_state: GameLoopState) -> AppCF<()> {
     use GameLoopState::*;
     loop_(initial_state, |state| match state {
         Playing(witness) => match witness {

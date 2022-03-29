@@ -10,7 +10,7 @@ native = ["general_storage_static/file"]
 web = ["general_storage_static/web", "getrandom/js"]
 
 [dependencies]
-chargrid = { version = "0.6", features = ["serialize", "gamepad"] }
+chargrid = { version = "0.7", features = ["serialize", "gamepad"] }
 direction = { version = "0.18", features = ["serialize", "rand"] }
 general_storage_static = { version = "0.2", features = ["bincode", "json"] }
 getrandom = "0.2"

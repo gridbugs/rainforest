@@ -1,18 +1,18 @@
-use crate::game_loop::CF;
+use crate::game_loop::AppCF;
 use chargrid::{
     prelude::*,
     text::{StyledString, Text},
 };
 
-fn text_component(width: u32, text: Vec<StyledString>) -> CF<()> {
+fn text_component(width: u32, text: Vec<StyledString>) -> AppCF<()> {
     Text::new(text)
         .wrap_word()
-        .boxed_cf()
+        .cf()
         .set_width(width)
         .press_any_key()
 }
 
-pub fn help(width: u32) -> CF<()> {
+pub fn help(width: u32) -> AppCF<()> {
     let normal = Style::plain_text();
     let faint = Style::plain_text().with_foreground(Rgba32::new_grey(127));
     let f = |s: &str| StyledString {

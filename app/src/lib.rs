@@ -1,4 +1,4 @@
-use chargrid::control_flow::boxed::*;
+use chargrid::control_flow::*;
 use general_storage_static::{format, StaticStorage};
 use rainforest_game::Config as GameConfig;
 
