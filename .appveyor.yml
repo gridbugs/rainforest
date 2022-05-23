@@ -6,6 +6,13 @@ environment:
       HOST: aarch64-apple-darwin
       TARGET: aarch64-apple-darwin
       MODE: release
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      HOST: x86_64-pc-windows-gnu
+      TARGET: x86_64-pc-windows-gnu
+      BIN_NAME: RainForest
+      BIN_NAME_COMPAT: RainForest-compatibility
+      ARCHIVE_NAME: rainforest-windows-x86_64
+      MODE: release
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
       HOST: x86_64-unknown-linux-gnu
       TARGET: wasm32-unknown-unknown
@@ -13,13 +20,6 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
       HOST: x86_64-unknown-linux-gnu
       TARGET: x86_64-unknown-linux-gnu
-      MODE: release
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      HOST: x86_64-pc-windows-gnu
-      TARGET: x86_64-pc-windows-gnu
-      BIN_NAME: RainForest
-      BIN_NAME_COMPAT: RainForest-compatibility
-      ARCHIVE_NAME: rainforest-windows-x86_64
       MODE: release
     - APPVEYOR_BUILD_WORKER_IMAGE: macOS
       HOST: x86_64-apple-darwin
@@ -230,6 +230,59 @@ for:
           strip -v target/$TARGET_DIR/rainforest_ansi_terminal
 
           MODE=$MODE ZIP_NAME=rainforest-macos-x86_64$NAME_SUFFIX-$APPVEYOR_REPO_BRANCH scripts/make_zip_unix.sh
+
+          MODE=$MODE APP_NAME=RainForest DMG_NAME=RainForest-$APPVEYOR_REPO_BRANCH.dmg scripts/make_dmg_macos.sh
+
+    artifacts:
+    - path: '*.zip'
+      name: files.gridbugs.org
+    - path: '*.dmg'
+      name: files.gridbugs.org
+
+    deploy:
+    - provider: Environment
+      name: files.gridbugs.org
+
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: macOS
+          TARGET: aarch64-apple-darwin
+    install:
+      - sh: >-
+          curl -sSf https://sh.rustup.rs | sh -s -- --quiet --default-host $HOST --default-toolchain stable --profile minimal -y
+
+          export PATH="$HOME/.cargo/bin:$PATH"
+
+          rustc -V
+
+          cargo -V
+
+    build_script:
+      - sh: >-
+          if [ "$MODE" == "release" ]; then
+            TARGET_DIR="release"
+            RELEASE_FLAG="--release"
+            NAME_SUFFIX=""
+          else
+            TARGET_DIR="debug"
+            RELEASE_FLAG=""
+            NAME_SUFFIX="-debug"
+          fi
+
+          cargo build $RELEASE_FLAG --manifest-path=wgpu/Cargo.toml
+
+          cargo build $RELEASE_FLAG --manifest-path=ggez/Cargo.toml
+
+          cargo build $RELEASE_FLAG --manifest-path=ansi-terminal/Cargo.toml
+
+          strip -v target/$TARGET_DIR/rainforest_wgpu
+
+          strip -v target/$TARGET_DIR/rainforest_ggez
+
+          strip -v target/$TARGET_DIR/rainforest_ansi_terminal
+
+          MODE=$MODE ZIP_NAME=rainforest-macos-aarch64$NAME_SUFFIX-$APPVEYOR_REPO_BRANCH scripts/make_zip_unix.sh
 
           MODE=$MODE APP_NAME=RainForest DMG_NAME=RainForest-$APPVEYOR_REPO_BRANCH.dmg scripts/make_dmg_macos.sh
 
