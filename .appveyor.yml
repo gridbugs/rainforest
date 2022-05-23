@@ -30,7 +30,7 @@ for:
   -
     matrix:
       only:
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
           TARGET: x86_64-pc-windows-gnu
     install:
       - cmd: >-
@@ -252,7 +252,7 @@ for:
       - sh: >-
           curl -sSf https://sh.rustup.rs | sh -s -- --quiet --default-host $HOST --default-toolchain stable --profile minimal -y
 
-          export PATH="$HOME/.cargo/bin:$PATH"
+          source $HOME/.cargo/env
 
           rustc -V
 
