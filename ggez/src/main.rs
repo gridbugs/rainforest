@@ -1,4 +1,4 @@
-use chargrid_ggez::*;
+use gridbugs::chargrid_ggez::*;
 use rainforest_app::{app, AppArgs};
 use rainforest_native::{meap, NativeCommon};
 

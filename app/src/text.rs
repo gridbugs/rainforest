@@ -1,5 +1,5 @@
 use crate::game_loop::AppCF;
-use chargrid::{
+use gridbugs::chargrid::{
     prelude::*,
     text::{StyledString, Text},
 };

@@ -1,5 +1,7 @@
-use chargrid_web::{Context, Size};
-use general_storage_static::{backend::LocalStorage, StaticStorage};
+use gridbugs::{
+    chargrid_web::{Context, Size},
+    storage::{LocalStorage, Storage},
+};
 use rainforest_app::{app, AppArgs, AppStorage, InitialRngSeed};
 use wasm_bindgen::prelude::*;
 
@@ -10,7 +12,7 @@ const CONTROLS_KEY: &str = "controls";
 pub fn run() -> Result<(), JsValue> {
     wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
     console_error_panic_hook::set_once();
-    let storage = StaticStorage::new(LocalStorage::new());
+    let storage = Storage::new(LocalStorage::new());
     let context = Context::new(Size::new(80, 60), "content");
     let args = AppArgs {
         storage: AppStorage {

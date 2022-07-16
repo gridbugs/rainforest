@@ -1,7 +1,5 @@
-use general_storage_static::{
-    backend::{FileStorage, IfDirectoryMissing},
-    StaticStorage,
-};
+use gridbugs::storage::{FileStorage, IfDirectoryMissing, Storage};
+
 pub use meap;
 use rainforest_app::{AppStorage, InitialRngSeed};
 use std::path::PathBuf;
@@ -34,7 +32,7 @@ impl NativeCommon {
                 omniscient = flag("omniscient").desc("enable omniscience");
             } in {{
                 let initial_rng_seed = rng_seed.map(InitialRngSeed::U64).unwrap_or(InitialRngSeed::Random);
-                let mut file_storage = StaticStorage::new(
+                let mut file_storage = Storage::new(
                     match FileStorage::next_to_exe(&storage_dir, IfDirectoryMissing::Create) {
                         Ok(fs) => fs,
                         Err(_) => {

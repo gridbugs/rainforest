@@ -3,9 +3,11 @@ use crate::{
     spatial::{Layer, Location},
     world::World,
 };
-use direction::CardinalDirection;
-use entity_table::Entity;
-use grid_2d::{Coord, Grid, Size};
+use gridbugs::{
+    direction::{self, CardinalDirection},
+    entity_table::Entity,
+    grid_2d::{Coord, Grid, Size},
+};
 use perlin2::Perlin2;
 use rand::{
     seq::{IteratorRandom, SliceRandom},

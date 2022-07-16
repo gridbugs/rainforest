@@ -5,13 +5,15 @@ use crate::{
     visibility::Light,
     world::World,
 };
-use entity_table::Entity;
-use grid_2d::coord_2d::{Axis, Coord};
+use gridbugs::{
+    entity_table::Entity,
+    grid_2d::coord_2d::{Axis, Coord},
+    rgb_int::Rgb24,
+    shadowcast::vision_distance::Circle,
+};
 use rand::{seq::SliceRandom, Rng};
 use rand_range::UniformInclusiveRange;
 use rational::Rational;
-use rgb_int::Rgb24;
-use shadowcast::vision_distance::Circle;
 
 impl World {
     pub fn spawn_floor(&mut self, coord: Coord, height: f64) -> Entity {

@@ -1,4 +1,4 @@
-use chargrid_wgpu::*;
+use gridbugs::chargrid_wgpu::*;
 use rainforest_app::{app, AppArgs};
 use rainforest_native::{meap, NativeCommon};
 

@@ -1,6 +1,8 @@
 use crate::colour;
-use chargrid::prelude::*;
-use grid_2d::{Coord, Grid, Size};
+use gridbugs::{
+    chargrid::prelude::*,
+    grid_2d::{Coord, Grid, Size},
+};
 use rainforest_game::Game;
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;

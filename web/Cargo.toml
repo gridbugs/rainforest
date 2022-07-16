@@ -7,9 +7,12 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-chargrid_web = "0.3"
+gridbugs = { version = "0.2", features = [
+    "chargrid_web_gamepad",
+    "storage_backend_web",
+    "audio_backend_web",
+] }
 console_error_panic_hook = "0.1"
-general_storage_static = { version = "0.2", features = ["web"] }
 log = "0.4"
 rainforest_app = { path = "../app", features = ["web", "print_log"]}
 wasm-bindgen = "0.2"

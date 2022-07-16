@@ -165,6 +165,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cbbc9d0964165b47557570cce6c952866c2678457aca742aafc9fb771d30270"
 
 [[package]]
+name = "base64"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -485,6 +491,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0486990a8a2a7b6e027ce686bf06122e94a85a2c717b169e45934e38d39c0a05"
 dependencies = [
+ "chargrid_gamepad",
  "chargrid_input",
  "chargrid_runtime",
  "grid_2d",
@@ -1181,6 +1188,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "general_audio"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de3f21897782645949f12eef57b365e90db09c43c61009f4929a20933106150f"
+
+[[package]]
+name = "general_audio_native"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e0eaa743ea7d2565817d04dae76010ce8de464c7962e05905b409b4e8b30308"
+dependencies = [
+ "general_audio",
+ "log",
+ "rodio 0.15.0",
+]
+
+[[package]]
+name = "general_audio_static"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06c3b3f42402273152f4bb3c12d0ae358a430432fa143062df680a889f4e6520"
+dependencies = [
+ "general_audio",
+ "general_audio_native",
+ "general_audio_web",
+]
+
+[[package]]
+name = "general_audio_web"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32908c5732e83bd5bed93bd5803bc23ba56db77b6bbf2d3574f58af75e0ef5a6"
+dependencies = [
+ "base64",
+ "general_audio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "general_storage"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,7 +1349,7 @@ dependencies = [
  "lyon",
  "mint",
  "old_school_gfx_glutin_ext",
- "rodio",
+ "rodio 0.14.0",
  "serde",
  "serde_derive",
  "skeptic",
@@ -1584,6 +1631,89 @@ checksum = "10ea69b4e8dfc8ae7b0f0d1fa510109113f3ae3fc265ba05c49e14cb3f249db4"
 dependencies = [
  "coord_2d",
  "serde",
+]
+
+[[package]]
+name = "grid_search_cardinal"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e02a5d0de0dae44e6f95842bf3cd0ab5965b3576500b1910c2f694f6352e0855"
+dependencies = [
+ "grid_search_cardinal_best",
+ "grid_search_cardinal_distance_map",
+ "grid_search_cardinal_point_to_point",
+]
+
+[[package]]
+name = "grid_search_cardinal_best"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bed45225eadf55498044c1e1b7fec87a59f501eb8fe07096e09d88c55b44fff"
+dependencies = [
+ "coord_2d",
+ "direction",
+ "grid_search_cardinal_common",
+ "serde",
+]
+
+[[package]]
+name = "grid_search_cardinal_common"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab2cde22797735e9fdc910a91d607651f4b494ac8eb09a5f97c447a976e2050"
+dependencies = [
+ "direction",
+ "grid_2d",
+ "serde",
+]
+
+[[package]]
+name = "grid_search_cardinal_distance_map"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4acb568ca70c78e6b8839cd29f410a1cf0b8aa4820248adbee8810e48f3b78c"
+dependencies = [
+ "direction",
+ "grid_2d",
+ "grid_search_cardinal_common",
+ "serde",
+]
+
+[[package]]
+name = "grid_search_cardinal_point_to_point"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f4a1890cd7f97c6f671b31b794b682b1651c6b6f79e6be29c4071ab4d8524d0"
+dependencies = [
+ "coord_2d",
+ "direction",
+ "grid_search_cardinal_common",
+ "serde",
+]
+
+[[package]]
+name = "gridbugs"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7820ddb5db8f118bc5d5e82e8c2597abe9afcfa5103569d23981231aede3f886"
+dependencies = [
+ "chargrid",
+ "chargrid_ansi_terminal",
+ "chargrid_ggez",
+ "chargrid_web",
+ "chargrid_wgpu",
+ "coord_2d",
+ "direction",
+ "entity_table",
+ "entity_table_realtime",
+ "general_audio_static",
+ "general_storage_static",
+ "grid_2d",
+ "grid_search_cardinal",
+ "line_2d",
+ "rgb_int",
+ "shadowcast",
+ "spatial_table",
 ]
 
 [[package]]
@@ -2668,8 +2798,8 @@ dependencies = [
 name = "rainforest_ansi_terminal"
 version = "0.1.0"
 dependencies = [
- "chargrid_ansi_terminal",
  "env_logger",
+ "gridbugs",
  "meap",
  "rainforest_app",
  "rainforest_native",
@@ -2680,11 +2810,8 @@ dependencies = [
 name = "rainforest_app"
 version = "0.1.0"
 dependencies = [
- "chargrid",
- "direction",
- "general_storage_static",
  "getrandom",
- "grid_2d",
+ "gridbugs",
  "log",
  "maplit",
  "perlin2",
@@ -2692,7 +2819,6 @@ dependencies = [
  "rand",
  "rand_isaac",
  "rand_xorshift",
- "rgb_int",
  "serde",
 ]
 
@@ -2700,29 +2826,22 @@ dependencies = [
 name = "rainforest_game"
 version = "0.1.0"
 dependencies = [
- "direction",
- "entity_table",
- "entity_table_realtime",
- "grid_2d",
- "line_2d",
+ "gridbugs",
  "log",
  "perlin2",
  "rand",
  "rand_isaac",
  "rand_range",
  "rational",
- "rgb_int",
  "serde",
- "shadowcast",
- "spatial_table",
 ]
 
 [[package]]
 name = "rainforest_ggez"
 version = "0.1.0"
 dependencies = [
- "chargrid_ggez",
  "env_logger",
+ "gridbugs",
  "rainforest_app",
  "rainforest_native",
 ]
@@ -2731,7 +2850,7 @@ dependencies = [
 name = "rainforest_native"
 version = "0.1.0"
 dependencies = [
- "general_storage_static",
+ "gridbugs",
  "log",
  "meap",
  "rainforest_app",
@@ -2741,9 +2860,8 @@ dependencies = [
 name = "rainforest_web"
 version = "0.1.0"
 dependencies = [
- "chargrid_web",
  "console_error_panic_hook",
- "general_storage_static",
+ "gridbugs",
  "log",
  "rainforest_app",
  "wasm-bindgen",
@@ -2754,8 +2872,8 @@ dependencies = [
 name = "rainforest_wgpu"
 version = "0.1.0"
 dependencies = [
- "chargrid_wgpu",
  "env_logger",
+ "gridbugs",
  "rainforest_app",
  "rainforest_native",
 ]
@@ -2949,6 +3067,16 @@ dependencies = [
  "hound",
  "lewton",
  "minimp3",
+]
+
+[[package]]
+name = "rodio"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0939e9f626e6c6f1989adb6226a039c855ca483053f0ee7c98b90e41cf731e"
+dependencies = [
+ "cpal",
+ "lewton",
 ]
 
 [[package]]

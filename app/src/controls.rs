@@ -1,5 +1,7 @@
-use chargrid::input::{GamepadButton, Input, KeyboardInput};
-use direction::CardinalDirection;
+use gridbugs::{
+    chargrid::input::{GamepadButton, Input, KeyboardInput},
+    direction::CardinalDirection,
+};
 use maplit::btreemap;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

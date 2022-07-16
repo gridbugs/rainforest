@@ -1,10 +1,10 @@
 use crate::visibility::Light;
-use entity_table::declare_entity_module;
-use grid_2d::coord_2d::Axis;
+use gridbugs::{
+    entity_table::declare_entity_module, grid_2d::coord_2d::Axis, rgb_int::Rgb24,
+    shadowcast::vision_distance::Circle,
+};
 use rational::Rational;
-use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
-use shadowcast::vision_distance::Circle;
 
 declare_entity_module! {
     components {

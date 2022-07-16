@@ -7,10 +7,13 @@ use crate::{
     rain::{Rain, RainDirection},
     text, AppStorage, InitialRngSeed,
 };
-use chargrid::{
-    border::BorderStyle, control_flow::*, menu, pad_by::Padding, prelude::*, text::StyledString,
+use gridbugs::{
+    chargrid::{
+        self, border::BorderStyle, control_flow::*, menu, pad_by::Padding, prelude::*,
+        text::StyledString,
+    },
+    grid_2d::Grid,
 };
-use grid_2d::Grid;
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
     ActionError, Config as GameConfig, Game, Item, RainLevel, RainSchedule, TopographyCell,

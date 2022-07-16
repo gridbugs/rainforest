@@ -3,9 +3,9 @@ use crate::{
     mist::Mist,
     tile_3x3,
 };
-use chargrid::{
-    core::rgb_int::{rgb24, Rgb24},
-    prelude::*,
+use gridbugs::{
+    chargrid::prelude::*,
+    rgb_int::{rgb24, Rgb24},
 };
 use rainforest_game::{CellVisibility, Game};
 

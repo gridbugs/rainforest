@@ -1,4 +1,4 @@
-use rgb_int::Rgba32;
+use gridbugs::rgb_int::Rgba32;
 
 pub const CURSOR: Rgba32 = Rgba32::new(255, 255, 0, 64);
 pub const FLOOR_BACKGROUND: Rgba32 = Rgba32::new_grey(0);

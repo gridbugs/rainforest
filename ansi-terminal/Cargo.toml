@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chargrid_ansi_terminal = { version = "0.3", features = ["gamepad"] }
+gridbugs = { version = "0.2", features = [ "chargrid_ansi_terminal_gamepad" ] }
 env_logger = "0.9"
 meap = "0.5"
 rainforest_app = { path = "../app" }

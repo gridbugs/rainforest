@@ -1,15 +1,17 @@
 use crate::{realtime::Context, Tile};
-use entity_table_realtime::{Entity, RealtimeComponent, RealtimeComponentApplyEvent};
+use gridbugs::{
+    entity_table_realtime::{Entity, RealtimeComponent, RealtimeComponentApplyEvent},
+    rgb_int::Rgb24,
+};
 use rand::{seq::SliceRandom, Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
-use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub mod spec {
     pub use crate::components::Tile;
+    pub use gridbugs::rgb_int::Rgb24;
     pub use rand_range::UniformInclusiveRange;
-    pub use rgb_int::Rgb24;
     use serde::{Deserialize, Serialize};
     pub use std::time::Duration;
 

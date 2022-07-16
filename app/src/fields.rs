@@ -1,11 +1,13 @@
-use chargrid::prelude::*;
-use grid_2d::{Coord, Grid, Size};
+use gridbugs::{
+    chargrid::prelude::*,
+    grid_2d::{Coord, Grid, Size},
+    rgb_int::Rgb24,
+};
 use rand::{
     distributions::{uniform::Uniform, Distribution},
     seq::SliceRandom,
     Rng,
 };
-use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

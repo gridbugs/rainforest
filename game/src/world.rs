@@ -4,8 +4,10 @@ use crate::{
     spatial::{Location, SpatialTable},
     visibility::Light,
 };
-use entity_table::{Entity, EntityAllocator};
-use grid_2d::{Coord, Size};
+use gridbugs::{
+    entity_table::{Entity, EntityAllocator},
+    grid_2d::{Coord, Size},
+};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 

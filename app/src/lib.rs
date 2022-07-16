@@ -1,5 +1,5 @@
-use chargrid::control_flow::*;
-use general_storage_static::{format, StaticStorage};
+use gridbugs::chargrid::control_flow::*;
+use gridbugs::storage::{format, Storage};
 use rainforest_game::Config as GameConfig;
 
 mod colour;
@@ -22,7 +22,7 @@ pub enum InitialRngSeed {
 }
 
 pub struct AppStorage {
-    pub handle: StaticStorage,
+    pub handle: Storage,
     pub save_game_key: String,
     pub controls_key: String,
 }
@@ -38,7 +38,7 @@ impl AppStorage {
             Self::SAVE_GAME_STORAGE_FORMAT,
         );
         if let Err(e) = result {
-            use general_storage_static::{StoreError, StoreRawError};
+            use gridbugs::storage::{StoreError, StoreRawError};
             match e {
                 StoreError::FormatError(e) => log::error!("Failed to format save file: {}", e),
                 StoreError::Raw(e) => match e {
@@ -57,7 +57,7 @@ impl AppStorage {
         );
         match result {
             Err(e) => {
-                use general_storage_static::{LoadError, LoadRawError};
+                use gridbugs::storage::{LoadError, LoadRawError};
                 match e {
                     LoadError::FormatError(e) => log::error!("Failed to parse save file: {}", e),
                     LoadError::Raw(e) => match e {
@@ -76,7 +76,7 @@ impl AppStorage {
     fn clear_game(&mut self) {
         if self.handle.exists(&self.save_game_key) {
             if let Err(e) = self.handle.remove(&self.save_game_key) {
-                use general_storage_static::RemoveError;
+                use gridbugs::storage::RemoveError;
                 match e {
                     RemoveError::IoError(e) => {
                         log::error!("Error while removing data: {}", e)
@@ -92,7 +92,7 @@ impl AppStorage {
             self.handle
                 .store(&self.controls_key, &controls, Self::CONTROLS_STORAGE_FORMAT);
         if let Err(e) = result {
-            use general_storage_static::{StoreError, StoreRawError};
+            use gridbugs::storage::{StoreError, StoreRawError};
             match e {
                 StoreError::FormatError(e) => log::error!("Failed to format controls: {}", e),
                 StoreError::Raw(e) => match e {
@@ -110,7 +110,7 @@ impl AppStorage {
             .load::<_, Controls, _>(&self.controls_key, Self::CONTROLS_STORAGE_FORMAT);
         match result {
             Err(e) => {
-                use general_storage_static::{LoadError, LoadRawError};
+                use gridbugs::storage::{LoadError, LoadRawError};
                 match e {
                     LoadError::FormatError(e) => {
                         log::error!("Failed to parse controls file: {}", e)

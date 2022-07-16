@@ -1,4 +1,4 @@
-use chargrid_ansi_terminal::{col_encode, Context};
+use gridbugs::chargrid_ansi_terminal::{col_encode, Context};
 use rainforest_app::{app, AppArgs, InitialRngSeed};
 use rainforest_native::NativeCommon;
 use rand::Rng;

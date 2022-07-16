@@ -6,15 +6,23 @@ edition = "2021"
 [features]
 print_stdout = []
 print_log = []
-native = ["general_storage_static/file"]
-web = ["general_storage_static/web", "getrandom/js"]
+native = ["gridbugs/storage_backend_file", "gridbugs/audio_backend_native"]
+web = ["getrandom/js", "gridbugs/storage_backend_web", "gridbugs/audio_backend_web"]
 
 [dependencies]
-chargrid = { version = "0.7", features = ["serialize", "gamepad"] }
-direction = { version = "0.18", features = ["serialize", "rand"] }
-general_storage_static = { version = "0.2", features = ["bincode", "json"] }
+gridbugs = { version = "0.2", features = [
+    "storage_format_json",
+    "storage_format_bincode",
+    "audio",
+    "direction",
+    "direction_rand",
+    "rgb_int",
+    "coord_2d",
+    "grid_2d",
+    "chargrid_serialize",
+    "chargrid_gamepad",
+] }
 getrandom = "0.2"
-grid_2d = { version = "0.15", features = ["serialize"] }
 log = "0.4"
 maplit = "1.0"
 perlin2 = { version = "0.1", features = ["serialize"] }
@@ -22,5 +30,4 @@ rand = "0.8"
 rand_isaac = { version = "0.3", features = ["serde1"] }
 rand_xorshift = { version = "0.3", features = ["serde1"] }
 rainforest_game = { path = "../game" }
-rgb_int = "0.1"
 serde = { version = "1.0", features = ["serde_derive"] }

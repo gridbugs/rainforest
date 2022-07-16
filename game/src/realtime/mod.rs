@@ -1,6 +1,10 @@
 use crate::World;
-use entity_table::Entity;
-use entity_table_realtime::{declare_realtime_entity_module, ContextContainsRealtimeComponents};
+use gridbugs::{
+    entity_table::Entity,
+    entity_table_realtime::{
+        self, declare_realtime_entity_module, ContextContainsRealtimeComponents,
+    },
+};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

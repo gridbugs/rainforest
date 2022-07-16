@@ -1,10 +1,12 @@
 use crate::{components::Tile, world::World};
-use entity_table::Entity;
-use grid_2d::{Coord, CoordIter, Grid, GridEnumerate, Size};
+use gridbugs::{
+    entity_table::Entity,
+    grid_2d::{Coord, CoordIter, Grid, GridEnumerate, Size},
+    rgb_int::Rgb24,
+    shadowcast::{vision_distance, Context as ShadowcastContext, DirectionBitmap, InputGrid},
+};
 use rational::Rational;
-use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
-use shadowcast::{vision_distance, Context as ShadowcastContext, DirectionBitmap, InputGrid};
 
 const AMBIENT_COL: Rgb24 = Rgb24::new_grey(31);
 const VISION_DISTANCE_SQUARED: u32 = 400;

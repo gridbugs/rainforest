@@ -2,10 +2,12 @@ use crate::{
     colour,
     fields::{GroundField, LogField, TeaField},
 };
-use chargrid::core::prelude::*;
-use grid_2d::coord_2d::{Axis, Coord, Size};
+use gridbugs::{
+    chargrid::core::prelude::*,
+    coord_2d::{Axis, Coord, Size},
+    rgb_int::Rgb24,
+};
 use rainforest_game::{EntityTile, Game, Tile, VisibilityCell};
-use rgb_int::Rgb24;
 
 pub fn render_3x3_from_visibility(
     screen_coord: Coord,

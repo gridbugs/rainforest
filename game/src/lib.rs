@@ -1,10 +1,12 @@
-use direction::CardinalDirection;
-use grid_2d::{Coord, Grid, Size};
+use gridbugs::{
+    direction::CardinalDirection,
+    grid_2d::{Coord, Grid, Size},
+    rgb_int::Rgb24,
+    shadowcast::{self, Context as ShadowcastContext},
+};
 use rand::{seq::SliceRandom, Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
-use rgb_int::Rgb24;
 use serde::{Deserialize, Serialize};
-use shadowcast::Context as ShadowcastContext;
 use std::time::Duration;
 
 mod components;
@@ -18,7 +20,7 @@ mod world;
 
 use components::EntityData;
 pub use components::{DoorState, Equipment, Item, Tile};
-pub use entity_table::Entity;
+pub use gridbugs::entity_table::Entity;
 use realtime::AnimationContext;
 pub use spatial::Layer;
 use spatial::Location;
