@@ -1,4 +1,4 @@
-use crate::World;
+use crate::world::World;
 use gridbugs::{
     entity_table::Entity,
     entity_table_realtime::{

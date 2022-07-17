@@ -17,6 +17,7 @@ use gridbugs::{
 use rainforest_game::{
     witness::{self, RunningGame, Witness},
     ActionError, Config as GameConfig, Game, Item, RainLevel, RainSchedule, TopographyCell,
+    MAX_MOTIVATION,
 };
 use rand::{Rng, SeedableRng};
 use rand_isaac::Isaac64Rng;
@@ -140,7 +141,7 @@ impl GameInstance {
             rain,
             mist,
         } = self;
-        let running_game = game.into_running_game(running);
+        let running_game = running.running_game(game);
         GameInstanceStorable {
             running_game,
             ground_field,
@@ -191,7 +192,7 @@ impl GameInstance {
             Rgba32::new_grey(255)
         };
         StyledString {
-            string: format!("Motivation: {}/{}", motivation, Game::MAX_MOTIVATION),
+            string: format!("Motivation: {}/{}", motivation, MAX_MOTIVATION),
             style: Style::plain_text()
                 .with_bold(true)
                 .with_foreground(motivation_colour),
@@ -429,29 +430,29 @@ impl GameLoopData {
                     self.cursor = None;
                     let (witness, action_result) = match app_input {
                         AppInput::Direction(direction) => {
-                            instance
-                                .game
-                                .player_walk(direction, &self.game_config, running)
+                            running.player_walk(&mut instance.game, direction, &self.game_config)
                         }
-                        AppInput::DirectionLong(direction) => instance
-                            .game
-                            .player_walk_until_collide(direction, &self.game_config, running),
+                        AppInput::DirectionLong(direction) => running.player_walk_until_collide(
+                            &mut instance.game,
+                            direction,
+                            &self.game_config,
+                        ),
                         AppInput::Wait => (
-                            instance.game.player_wait(&self.game_config, running),
+                            running.player_wait(&mut instance.game, &self.game_config),
                             Ok(()),
                         ),
                         AppInput::WaitLong => (
-                            instance.game.player_wait_long(&self.game_config, running),
+                            running.player_wait_long(&mut instance.game, &self.game_config),
                             Ok(()),
                         ),
-                        AppInput::Get => instance.game.player_get(&self.game_config, running),
-                        AppInput::Lantern => instance
-                            .game
-                            .player_toggle_lantern(&self.game_config, running),
-                        AppInput::Pushing => instance
-                            .game
-                            .player_toggle_pushing(&self.game_config, running),
-                        AppInput::Dig => instance.game.player_dig(&self.game_config, running),
+                        AppInput::Get => running.player_get(&mut instance.game, &self.game_config),
+                        AppInput::Lantern => {
+                            running.player_toggle_lantern(&mut instance.game, &self.game_config)
+                        }
+                        AppInput::Pushing => {
+                            running.player_toggle_pushing(&mut instance.game, &self.game_config)
+                        }
+                        AppInput::Dig => running.player_dig(&mut instance.game, &self.game_config),
                         AppInput::Map => {
                             if instance.game.equipped().map {
                                 return GameLoopState::Map(running);
@@ -496,9 +497,7 @@ impl GameLoopData {
                 }
                 instance.rain.tick();
                 instance.mist.tick();
-                instance
-                    .game
-                    .tick(since_previous, &self.game_config, running)
+                running.tick(&mut instance.game, since_previous, &self.game_config)
             }
             _ => Witness::Running(running),
         };
@@ -1040,7 +1039,7 @@ fn sleep_menu(sleep: witness::Sleep) -> AppCF<Witness> {
     yes_no("Go to sleep?".to_string()).map_side_effect(|yes, state: &mut State| {
         if yes {
             let instance = state.instance.as_mut().unwrap();
-            instance.game.player_sleep(&state.game_config, sleep)
+            sleep.commit(&mut instance.game, &state.game_config)
         } else {
             sleep.cancel()
         }
