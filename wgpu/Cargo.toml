@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gridbugs = { version = "0.2", features = [ "chargrid_wgpu_gamepad" ] }
+gridbugs = { version = "0.7", features = [ "chargrid_wgpu_gamepad" ] }
 env_logger = "0.9"
 rainforest_app = { path = "../app", features = ["print_stdout"] }
 rainforest_native = { path = "../native" }
